@@ -24,6 +24,8 @@ Exemple de `times/<id>.json` :
 }
 ```
 
+Format détaillé, règles de lecture et bonnes pratiques de téléchargement : [docs/DATA_FORMAT.md](docs/DATA_FORMAT.md) (FR/EN).
+
 Les heures sont les heures légales marocaines du jour concerné. `utc_offset` est facultatif (écrit seulement si on le fournit au constructeur).
 
 ## Comment les données sont produites

@@ -333,3 +333,13 @@ class FreshnessTests(unittest.TestCase):
         self.assertIn("--skip-if-fresh", wf)
         self.assertIn("--no-geocode", wf)
         self.assertIn("--lookahead 0", wf)
+
+
+class DocsTests(unittest.TestCase):
+    def test_format_doc_covers_every_published_field(self):
+        root = Path(__file__).resolve().parent.parent
+        doc = (root / "docs" / "DATA_FORMAT.md").read_text("utf-8")
+        for field in ("id", "name_ar", "name_fr", "lat", "lon", "verified", "city_id", "timezone",
+                      "utc_offset", "updated", "days", "fajr", "sunrise", "dhuhr", "asr", "maghrib", "isha"):
+            self.assertIn(f"`{field}`", doc, field)
+        self.assertIn("docs/DATA_FORMAT.md", (root / "README.md").read_text("utf-8"))
