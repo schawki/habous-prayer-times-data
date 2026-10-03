@@ -35,7 +35,7 @@ jobs:
           CITY: ${{ inputs.city }}
           UTC_OFFSET: ${{ inputs.utc_offset }}
         run: |
-          args=(--data-dir data --lookahead 7)
+          args=(--data-dir data --lookahead 7 --ca-bundle certs/habous-intermediate.pem)
           [ -n "$CITY" ] && args+=(--city "$CITY")
           [ -n "$UTC_OFFSET" ] && args+=(--utc-offset "$UTC_OFFSET")
           python tools/build_data.py "${args[@]}"

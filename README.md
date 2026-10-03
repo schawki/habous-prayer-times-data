@@ -39,7 +39,17 @@ python3 tools/build_data.py --data-dir /tmp/essai --city 58
 cat /tmp/essai/times/58.json
 ```
 
-Si l'erreur concerne le certificat du site, fournissez la chaîne complète : `--ca-bundle chemin/vers/chaine.pem`.
+### Certificat du site des Habous
+
+Le serveur de habous.gov.ma n'envoie pas son certificat intermédiaire (Sectigo « Public Server Authentication CA DV R36 »). Un navigateur ou un Mac le retrouvent seuls, pas un serveur GitHub : sans lui, on obtient `CERTIFICATE_VERIFY_FAILED`. Il est donc fourni dans `certs/habous-intermediate.pem` (certificat public, valable jusqu'au 21 mars 2036) et passé avec `--ca-bundle`, qui l'**ajoute** aux certificats du système. La vérification des certificats reste active.
+
+Pour le récupérer à nouveau (macOS/Linux) :
+
+```
+url=$(openssl s_client -connect www.habous.gov.ma:443 -servername www.habous.gov.ma </dev/null 2>/dev/null | openssl x509 -noout -text | grep "CA Issuers" | head -1 | sed 's/.*URI://')
+curl -s "$url" -o inter.cer
+openssl x509 -inform DER -in inter.cer -out certs/habous-intermediate.pem
+```
 
 ## Licence et sources
 

@@ -138,3 +138,31 @@ class RealPageTests(unittest.TestCase):
         casa = next(c for c in cities if c["id"] == 58)
         self.assertEqual((casa["name_ar"], casa["name_fr"]), ("الدار البيضاء", "Casablanca"))
         self.assertNotIn("name_fr", next(c for c in cities if c["id"] == 1))
+
+
+class SslTests(unittest.TestCase):
+    CERT = Path(__file__).resolve().parent.parent / "certs" / "habous-intermediate.pem"
+
+    def test_extra_ca_is_added_and_verification_stays_on(self):
+        import ssl
+        base = ssl.create_default_context().cert_store_stats()["x509_ca"]
+        ctx = build.make_ssl_context(str(self.CERT))
+        self.assertEqual(ctx.verify_mode, ssl.CERT_REQUIRED)
+        self.assertTrue(ctx.check_hostname)
+        self.assertEqual(ctx.cert_store_stats()["x509_ca"], base + 1)
+
+    def test_ca_bundle_option_is_wired(self):
+        page = synthetic_page(date.today() - timedelta(days=5))
+        with tempfile.TemporaryDirectory() as tmp, \
+             mock.patch.object(build, "http_get", return_value=page), \
+             mock.patch.object(build, "geocode", return_value=(34.0, -6.8, "Ville")), \
+             mock.patch.object(build.time, "sleep"), \
+             mock.patch.object(build, "_SSL_CONTEXT", None), \
+             mock.patch.object(sys, "argv", ["b", "--data-dir", tmp, "--city", "3", "--ca-bundle", str(self.CERT)]):
+            self.assertEqual(build.main(), 0)
+            self.assertIsNotNone(build._SSL_CONTEXT)
+
+    def test_workflow_passes_the_certificate(self):
+        wf = (Path(__file__).resolve().parent.parent / ".github/workflows/update-data.yml").read_text("utf-8")
+        self.assertIn("--ca-bundle certs/habous-intermediate.pem", wf)
+        self.assertTrue(self.CERT.exists())

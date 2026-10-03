@@ -47,6 +47,13 @@ def _load_parser():
 parser = _load_parser()
 
 
+def make_ssl_context(extra_ca_file: str) -> ssl.SSLContext:
+    """Certificats du système + un fichier supplémentaire (la vérification reste active)."""
+    ctx = ssl.create_default_context()
+    ctx.load_verify_locations(cafile=extra_ca_file)
+    return ctx
+
+
 def http_get(url: str) -> str:
     req = urllib.request.Request(url, headers={"User-Agent": UA})
     with urllib.request.urlopen(req, timeout=30, context=_SSL_CONTEXT) as resp:
@@ -175,7 +182,7 @@ def main() -> int:
         return 2
     if args.ca_bundle:
         global _SSL_CONTEXT
-        _SSL_CONTEXT = ssl.create_default_context(cafile=args.ca_bundle)
+        _SSL_CONTEXT = make_ssl_context(args.ca_bundle)
 
     try:
         cities = build_cities(data_dir, args.delay, args.city)
