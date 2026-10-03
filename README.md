@@ -8,7 +8,7 @@
 ## Contenu
 
 ```
-data/cities.json        villes (id Habous, noms FR/AR, latitude, longitude)
+data/cities.json        villes (id Habous, noms FR/AR, latitude, longitude, verified)
 data/times/<id>.json    horaires d'une ville
 ```
 
@@ -39,6 +39,14 @@ python3 tools/build_data.py --data-dir /tmp/essai --city 58
 cat /tmp/essai/times/58.json
 ```
 
+### Coordonnées des villes
+
+Le site des Habous ne donne que les noms (en arabe). Les coordonnées viennent, par ordre de priorité, de :
+1. `tools/cities_curated.json` : villes corrigées à la main (noms français, et coordonnées quand la recherche automatique se trompe) ;
+2. une recherche OpenStreetMap (Nominatim), qui ne retient que des lieux habités (pas de rues, de pays, de régions).
+
+Chaque coordonnée est **contrôlée avec les horaires Habous eux-mêmes** (`tools/citycheck.py`) : l'heure du Dhuhr fixe la longitude d'une ville (4 minutes par degré). Si la longitude trouvée s'écarte de plus de 0,8° de celle que donne le Dhuhr, la coordonnée est écartée et le programme cherche une autre réponse. Le champ `verified: true` d'une ville de `cities.json` indique qu'elle a passé ce contrôle. Les villes qui n'ont aucune réponse acceptable sont listées à la fin de l'exécution : on les renseigne dans `cities_curated.json`.
+
 ### Certificat du site des Habous
 
 Le serveur de habous.gov.ma n'envoie pas son certificat intermédiaire (Sectigo « Public Server Authentication CA DV R36 »). Un navigateur ou un Mac le retrouvent seuls, pas un serveur GitHub : sans lui, on obtient `CERTIFICATE_VERIFY_FAILED`. Il est donc fourni dans `certs/habous-intermediate.pem` (certificat public, valable jusqu'au 21 mars 2036) et passé avec `--ca-bundle`, qui l'**ajoute** aux certificats du système. La vérification des certificats reste active.
@@ -53,4 +61,4 @@ openssl x509 -inform DER -in inter.cer -out certs/habous-intermediate.pem
 
 ## Licence et sources
 
-Le code est sous licence MIT (voir `LICENSE`). Les horaires restent la propriété de leur éditeur (Ministère des Habous et des Affaires islamiques). Les coordonnées des villes proviennent d'OpenStreetMap (© contributeurs OpenStreetMap, ODbL).
+Le code est sous licence MIT (voir `LICENSE`). Les horaires restent la propriété de leur éditeur (Ministère des Habous et des Affaires islamiques). Les coordonnées des villes proviennent d'OpenStreetMap (© contributeurs OpenStreetMap, ODbL) ou de `tools/cities_curated.json`.

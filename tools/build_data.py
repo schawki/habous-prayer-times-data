@@ -9,8 +9,10 @@ Exécuté par le workflow GitHub (.github/workflows/update-data.yml), ou à la m
 Principes :
 - 1 requête / ville seulement quand le cache couvre moins de --lookahead jours
   (donc ~1 passage complet par mois hijri), avec une pause entre requêtes ;
-- géocodage des villes (OpenStreetMap Nominatim, 1 req/s) une seule fois,
-  les coordonnées sont ensuite conservées dans data/cities.json ;
+- coordonnées des villes : fichier relu à la main (cities_curated.json), sinon recherche
+  OpenStreetMap (Nominatim, 1 req/s) en ne gardant que les lieux habités ; chaque résultat
+  est contrôlé avec l'heure du Dhuhr de la ville (tools/citycheck.py), les incohérents
+  sont écartés. Les coordonnées sont conservées dans data/cities.json ;
 - aucune donnée n'est écrite si le parseur lève une erreur (pas d'horaires faux).
 """
 
@@ -47,6 +49,17 @@ def _load_parser():
 parser = _load_parser()
 
 
+def _load_check():
+    spec = importlib.util.spec_from_file_location("citycheck", Path(__file__).with_name("citycheck.py"))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+check = _load_check()
+CURATED_FILE = Path(__file__).with_name("cities_curated.json")
+
+
 def make_ssl_context(extra_ca_file: str) -> ssl.SSLContext:
     """Certificats du système + un fichier supplémentaire (la vérification reste active)."""
     ctx = ssl.create_default_context()
@@ -72,37 +85,33 @@ def write_json(path: Path, payload) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=1, sort_keys=True) + "\n", "utf-8")
 
 
-def geocode(name: str) -> tuple[float, float, str | None] | None:
-    """(lat, lon, nom français ou None) ; le nom français vient d'OpenStreetMap."""
-    query = urllib.parse.urlencode(
-        {"q": f"{name}, Maroc", "format": "json", "limit": 1, "accept-language": "fr"}
-    )
+def geocode_candidates(name: str) -> list[dict]:
+    """Résultats OpenStreetMap (jusqu'à 5) pour un nom, noms en français quand ils existent."""
+    query = urllib.parse.urlencode({
+        "q": name, "format": "json", "limit": 5, "accept-language": "fr",
+        "countrycodes": "ma,eh,es", "addressdetails": 0,
+    })
     try:
         results = json.loads(http_get(f"{NOMINATIM}?{query}"))
     except Exception as err:  # noqa: BLE001
-        print(f"  géocodage échoué pour {name}: {err}")
-        return None
+        print(f"  recherche échouée pour {name}: {err}")
+        results = []
     time.sleep(1.1)
-    if not results:
-        return None
-    lat, lon = float(results[0]["lat"]), float(results[0]["lon"])
-    # Garde-fou : Maroc, Sahara occidental, Sebta et Melilla.
-    if not (20.0 <= lat <= 37.5 and -18.0 <= lon <= 0.0):
-        print(f"  coordonnées hors du Maroc pour {name}: {lat},{lon} -> ignorées")
-        return None
-    name_fr = results[0].get("name") or results[0].get("display_name", "").split(",")[0].strip()
-    if not name_fr or ARABIC.search(name_fr):
-        name_fr = None  # OSM n'a pas de nom français : on garde l'arabe
-    return round(lat, 4), round(lon, 4), name_fr
+    return results if isinstance(results, list) else []
 
 
-def build_cities(data_dir: Path, delay: float, only: int | None = None) -> list[dict]:
-    """Liste des villes (1 requête Habous) ; géocodage seulement pour les nouvelles."""
+def load_curated() -> dict[int, dict]:
+    return {int(k): v for k, v in read_json(CURATED_FILE, {}).items() if not k.startswith("_")}
+
+
+def build_cities(data_dir: Path, delay: float) -> list[dict]:
+    """Liste des villes (1 requête Habous) ; le fichier relu à la main prime sur tout."""
     path = data_dir / "cities.json"
     existing = {int(c["id"]): c for c in read_json(path, {}).get("cities", [])}
     html = http_get(f"{HABOUS_URL}?ville=58")
     time.sleep(delay)
     listed = parser.parse_cities(html)
+    curated = load_curated()
 
     cities = []
     for item in listed:
@@ -110,18 +119,64 @@ def build_cities(data_dir: Path, delay: float, only: int | None = None) -> list[
         city = existing.get(cid, {"id": cid})
         key = "name_ar" if ARABIC.search(label) else "name_fr"
         city[key] = label
-        if city.get("lat") is None and only in (None, cid):
-            found = geocode(city.get("name_fr") or label)
-            if found:
-                city["lat"], city["lon"] = found[0], found[1]
-                if not city.get("name_fr") and found[2]:
-                    city["name_fr"] = found[2]
+        if cid in curated:
+            for field in ("name_fr", "lat", "lon"):
+                if curated[cid].get(field) is not None:
+                    city[field] = curated[cid][field]
+            if curated[cid].get("lat") is not None:
+                city["verified"] = True
         cities.append(city)
     cities.sort(key=lambda c: c["id"])
-    write_json(path, {"updated": datetime.now(timezone.utc).isoformat(timespec="seconds"), "cities": cities})
-    missing = [c["id"] for c in cities if c.get("lat") is None]
-    print(f"{len(cities)} villes, {len(missing)} sans coordonnées {missing[:10]}")
+    save_cities(path, cities)
     return cities
+
+
+def save_cities(path: Path, cities: list[dict]) -> None:
+    write_json(path, {"updated": datetime.now(timezone.utc).isoformat(timespec="seconds"), "cities": cities})
+
+
+def refine_coordinates(
+    cities: list[dict], data_dir: Path, only: int | None = None, utc_offset: str | None = None
+) -> dict[str, list[int]]:
+    """Contrôle (et au besoin cherche) les coordonnées avec l'heure du Dhuhr de chaque ville."""
+    curated = load_curated()
+    report: dict[str, list[int]] = {"removed": [], "unverified": [], "missing": []}
+    for city in cities:
+        cid = city["id"]
+        if only not in (None, cid) or (cid in curated and curated[cid].get("lat") is not None):
+            continue
+        payload = read_json(data_dir / "times" / f"{cid}.json", {})
+        implied = check.city_implied_longitude(
+            payload.get("days", {}), payload.get("utc_offset") or utc_offset
+        )
+        if city.get("lat") is not None:
+            if implied is None or abs(city["lon"] - implied) <= check.TOLERANCE_DEG:
+                city["verified"] = implied is not None
+                continue
+            report["removed"].append(cid)  # coordonnées incompatibles avec les horaires
+            for field in ("lat", "lon", "verified"):
+                city.pop(field, None)
+            if cid not in curated or not curated[cid].get("name_fr"):
+                city.pop("name_fr", None)  # le nom venait de la même mauvaise recherche
+        names = [n for n in (city.get("name_ar"), city.get("name_fr")) if n]
+        picked = None
+        for name in names:
+            picked = check.pick_candidate(geocode_candidates(f"{name}, المغرب" if ARABIC.search(name) else f"{name}, Maroc"), implied)
+            if picked:
+                break
+        if not picked:
+            report["missing"].append(cid)
+            continue
+        cand, verified = picked
+        city["lat"], city["lon"] = round(float(cand["lat"]), 4), round(float(cand["lon"]), 4)
+        if verified:
+            city["verified"] = True
+        else:
+            report["unverified"].append(cid)
+        name_fr = cand.get("name") or ""
+        if not city.get("name_fr") and name_fr and not ARABIC.search(name_fr):
+            city["name_fr"] = name_fr
+    return report
 
 
 def times_payload(cid: int, days: dict, utc_offset: str | None) -> dict:
@@ -185,16 +240,26 @@ def main() -> int:
         _SSL_CONTEXT = make_ssl_context(args.ca_bundle)
 
     try:
-        cities = build_cities(data_dir, args.delay, args.city)
+        all_cities = build_cities(data_dir, args.delay)
     except Exception as err:  # noqa: BLE001
         print(f"Impossible de construire la liste des villes : {err}")
         return 1
+    cities = all_cities
     if args.city is not None:
-        cities = [c for c in cities if c["id"] == args.city]
+        cities = [c for c in all_cities if c["id"] == args.city]
         if not cities:
             print(f"Ville {args.city} absente de la liste Habous")
             return 1
     ok, failed = build_times(cities, data_dir, args.lookahead, args.delay, args.utc_offset)
+    report = refine_coordinates(cities, data_dir, args.city, args.utc_offset)
+    save_cities(data_dir / "cities.json", all_cities)  # toujours la liste complète
+    without = [c["id"] for c in cities if c.get("lat") is None]
+    print(
+        f"Coordonnées : {sum(1 for c in cities if c.get('verified'))} vérifiées, "
+        f"{len(report['removed'])} retirées car incohérentes avec les horaires {report['removed']}, "
+        f"{len(report['unverified'])} non vérifiables {report['unverified']}, "
+        f"{len(without)} sans coordonnées {without} (à renseigner dans tools/cities_curated.json)"
+    )
     print(f"Horaires : {ok} villes mises à jour, {failed} échecs")
     return 1 if failed and not ok else 0
 

@@ -26,7 +26,12 @@ def load(name):
 
 
 parser = load("habous_parser")
+check = load("citycheck")
 build = load("build_data")
+
+
+def cand(lat, lon, name="Ville", cls="place", rank=16):
+    return {"lat": str(lat), "lon": str(lon), "name": name, "class": cls, "place_rank": rank}
 
 
 def synthetic_page(start: date, n: int = 30) -> str:
@@ -63,7 +68,7 @@ class BuilderTests(unittest.TestCase):
     def _run(self, argv, page):
         with tempfile.TemporaryDirectory() as tmp, \
              mock.patch.object(build, "http_get", return_value=page), \
-             mock.patch.object(build, "geocode", return_value=(34.0, -6.8, "Ville")) as geo, \
+             mock.patch.object(build, "geocode_candidates", return_value=[cand(34.0, -6.8)]) as geo, \
              mock.patch.object(build.time, "sleep"), \
              mock.patch.object(sys, "argv", ["build_data.py", "--data-dir", tmp, *argv]):
             code = build.main()
@@ -123,7 +128,7 @@ class RealPageTests(unittest.TestCase):
     def test_trial_city_58_from_real_page(self):
         with tempfile.TemporaryDirectory() as tmp, \
              mock.patch.object(build, "http_get", return_value=self.html), \
-             mock.patch.object(build, "geocode", return_value=(33.57, -7.59, "Casablanca")), \
+             mock.patch.object(build, "geocode_candidates", return_value=[cand(33.59, -7.62, "Casablanca")]), \
              mock.patch.object(build.time, "sleep"), \
              mock.patch.object(build, "date") as fake_date, \
              mock.patch.object(sys, "argv", ["b", "--data-dir", tmp, "--city", "58", "--utc-offset", "+00:00"]):
@@ -155,7 +160,7 @@ class SslTests(unittest.TestCase):
         page = synthetic_page(date.today() - timedelta(days=5))
         with tempfile.TemporaryDirectory() as tmp, \
              mock.patch.object(build, "http_get", return_value=page), \
-             mock.patch.object(build, "geocode", return_value=(34.0, -6.8, "Ville")), \
+             mock.patch.object(build, "geocode_candidates", return_value=[cand(34.0, -6.8)]), \
              mock.patch.object(build.time, "sleep"), \
              mock.patch.object(build, "_SSL_CONTEXT", None), \
              mock.patch.object(sys, "argv", ["b", "--data-dir", tmp, "--city", "3", "--ca-bundle", str(self.CERT)]):
@@ -166,3 +171,99 @@ class SslTests(unittest.TestCase):
         wf = (Path(__file__).resolve().parent.parent / ".github/workflows/update-data.yml").read_text("utf-8")
         self.assertIn("--ca-bundle certs/habous-intermediate.pem", wf)
         self.assertTrue(self.CERT.exists())
+
+
+class CityCheckTests(unittest.TestCase):
+    html = FIXTURE.read_text("utf-8")
+
+    def test_casablanca_longitude_from_dhuhr(self):
+        days = parser.parse_month(self.html, date(2026, 10, 3))
+        lon = check.city_implied_longitude(days, "+00:00")
+        self.assertAlmostEqual(lon, -7.6, delta=0.3)
+        self.assertIsNone(check.city_implied_longitude(days, None))  # sans décalage, pas de contrôle
+
+    def test_offset_matters(self):
+        days = parser.parse_month(self.html, date(2026, 10, 3))
+        self.assertAlmostEqual(
+            check.city_implied_longitude(days, "+01:00") - check.city_implied_longitude(days, "+00:00"),
+            15, delta=0.01,  # 12:25 à +01:00 = 11:25 UTC : midi plus tôt, donc plus à l’est
+        )
+
+    def test_is_place_rejects_streets_countries_and_far_away(self):
+        self.assertTrue(check.is_place(cand(31.63, -8.0, "Marrakech")))
+        self.assertFalse(check.is_place(cand(33.58, -7.62, "Rue de Sebta", cls="highway", rank=26)))
+        self.assertFalse(check.is_place(cand(28.3, -10.4, "Maroc", cls="boundary", rank=4)))
+        self.assertFalse(check.is_place(cand(48.85, 2.35, "Paris")))
+        self.assertFalse(check.is_place({"lat": "x"}))
+
+    def test_pick_candidate_uses_dhuhr(self):
+        implied = -8.0  # Marrakech d'après son Dhuhr
+        wrong, right = cand(28.33, -10.37, "Tiznit"), cand(31.63, -7.98, "Marrakech")
+        self.assertEqual(check.pick_candidate([wrong, right], implied), (right, True))
+        self.assertIsNone(check.pick_candidate([wrong], implied))
+        self.assertEqual(check.pick_candidate([wrong], None), (wrong, False))
+        self.assertIsNone(check.pick_candidate([], implied))
+
+
+class RefineTests(unittest.TestCase):
+    """Reproduit l'erreur réelle : Marrakech géocodée près de Tiznit avec le nom « Maroc »."""
+
+    def _run(self, cities, found):
+        page = synthetic_page(date.today())
+        days = parser.parse_month(page, date.today())
+        # Dhuhr 13:35 +00:00 -> longitude implicite ~ -22° : on fixe plutôt Dhuhr à 12:25 (≈ -7,6°)
+        days = {d: {**t, "dhuhr": "12:25"} for d, t in days.items()}
+        with tempfile.TemporaryDirectory() as tmp:
+            for c in cities:
+                (Path(tmp) / "times").mkdir(exist_ok=True)
+                (Path(tmp) / "times" / f"{c['id']}.json").write_text(
+                    json.dumps({"days": days, "utc_offset": "+00:00"}), "utf-8")
+            with mock.patch.object(build, "geocode_candidates", return_value=found) as geo, \
+                 mock.patch.object(build, "load_curated", return_value={}):
+                report = build.refine_coordinates(cities, Path(tmp))
+            return report, geo
+
+    def test_incoherent_coordinates_and_name_are_replaced(self):
+        city = {"id": 104, "name_ar": "مراكش", "name_fr": "Maroc", "lat": 28.33, "lon": -10.37}
+        report, geo = self._run([city], [cand(31.63, -7.6, "Marrakech")])
+        self.assertEqual(report["removed"], [104])
+        self.assertEqual((city["lat"], city["lon"], city["name_fr"]), (31.63, -7.6, "Marrakech"))
+        self.assertTrue(city["verified"])
+
+    def test_coherent_coordinates_are_kept_without_any_request(self):
+        city = {"id": 58, "name_ar": "الدار البيضاء", "name_fr": "Casablanca", "lat": 33.59, "lon": -7.62}
+        report, geo = self._run([city], [])
+        self.assertEqual(geo.call_count, 0)
+        self.assertEqual(report, {"removed": [], "unverified": [], "missing": []})
+        self.assertTrue(city["verified"])
+
+    def test_no_acceptable_candidate_leaves_city_without_coordinates(self):
+        city = {"id": 9, "name_ar": "مدينة"}
+        report, _ = self._run([city], [cand(28.0, -10.0, "Loin")])
+        self.assertEqual(report["missing"], [9])
+        self.assertNotIn("lat", city)
+
+    def test_curated_file_is_well_formed(self):
+        curated = json.loads((TOOLS / "cities_curated.json").read_text("utf-8"))
+        entries = {k: v for k, v in curated.items() if not k.startswith("_")}
+        self.assertGreaterEqual(len(entries), 20)
+        for key, value in entries.items():
+            self.assertTrue(key.isdigit(), key)
+            self.assertTrue(value["name_fr"])
+            if "lat" in value:
+                self.assertTrue(check.LAT_RANGE[0] <= value["lat"] <= check.LAT_RANGE[1], key)
+                self.assertTrue(check.LON_RANGE[0] <= value["lon"] <= check.LON_RANGE[1], key)
+
+    def test_curated_entries_apply_and_verified(self):
+        page = (FIXTURE).read_text("utf-8")
+        with tempfile.TemporaryDirectory() as tmp, \
+             mock.patch.object(build, "http_get", return_value=page), \
+             mock.patch.object(build, "geocode_candidates", return_value=[]), \
+             mock.patch.object(build.time, "sleep"), \
+             mock.patch.object(sys, "argv", ["b", "--data-dir", tmp, "--city", "58"]):
+            self.assertEqual(build.main(), 0)
+            cities = {c["id"]: c for c in json.loads((Path(tmp) / "cities.json").read_text("utf-8"))["cities"]}
+        self.assertEqual(cities[104]["name_fr"], "Marrakech")
+        self.assertEqual(cities[104]["lat"], 31.6295)
+        self.assertEqual(cities[40]["name_fr"], "Melilla")
+        self.assertTrue(cities[24]["verified"])
