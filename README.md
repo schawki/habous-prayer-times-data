@@ -65,6 +65,12 @@ curl -s "$url" -o inter.cer
 openssl x509 -inform DER -in inter.cer -out certs/habous-intermediate.pem
 ```
 
+## Dossier `data/` géré par le robot / `data/` is bot-managed
+
+Le dossier `data/` est écrit uniquement par le workflow `update-data.yml`. Ne le modifiez ni ne le copiez à la main (une copie incomplète supprimerait les horaires). Si des fichiers manquent, relancez le workflow à la main (Actions → Run workflow).
+
+The `data/` folder is written only by the `update-data.yml` workflow. Do not edit or copy it by hand (an incomplete copy would delete the times). If files are missing, run the workflow manually (Actions → Run workflow).
+
 ## Licence et sources
 
 Le code est sous licence MIT (voir `LICENSE`). Les horaires restent la propriété de leur éditeur (Ministère des Habous et des Affaires islamiques). Les coordonnées des villes proviennent d'OpenStreetMap (© contributeurs OpenStreetMap, ODbL) ou de `tools/cities_curated.json`.
