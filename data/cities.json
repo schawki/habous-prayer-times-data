@@ -1,0 +1,1258 @@
+{
+ "cities": [
+  {
+   "id": 1,
+   "lat": 34.0218,
+   "lon": -6.8409,
+   "name_ar": "الرباط",
+   "name_fr": "Rabat"
+  },
+  {
+   "id": 2,
+   "lat": 33.8303,
+   "lon": -6.0726,
+   "name_ar": "الخميسات",
+   "name_fr": "Khémisset"
+  },
+  {
+   "id": 3,
+   "lat": 33.894,
+   "lon": -6.3167,
+   "name_ar": "تيفلت",
+   "name_fr": "Tiflet"
+  },
+  {
+   "id": 4,
+   "lat": 33.5286,
+   "lon": -6.6044,
+   "name_ar": "الرماني",
+   "name_fr": "Rommani"
+  },
+  {
+   "id": 5,
+   "lat": 33.4255,
+   "lon": -6.0045,
+   "name_ar": "والماس",
+   "name_fr": "Oulmes"
+  },
+  {
+   "id": 6,
+   "lat": 33.781,
+   "lon": -7.161,
+   "name_ar": "بوزنيقة",
+   "name_fr": "Bouznika"
+  },
+  {
+   "id": 7,
+   "lat": 34.2646,
+   "lon": -6.5702,
+   "name_ar": "القنيطرة",
+   "name_fr": "Kénitra"
+  },
+  {
+   "id": 8,
+   "lat": 34.2264,
+   "lon": -5.7114,
+   "name_ar": "سيدي قاسم",
+   "name_fr": "Sidi Kacem"
+  },
+  {
+   "id": 9,
+   "lat": 34.3085,
+   "lon": -6.294,
+   "name_ar": "سيدي يحيى الغرب",
+   "name_fr": "Sidi Yahya du Gharb"
+  },
+  {
+   "id": 10,
+   "lat": 34.2599,
+   "lon": -5.9273,
+   "name_ar": "سيدي سليمان",
+   "name_fr": "Sidi Slimane"
+  },
+  {
+   "id": 11,
+   "lat": 34.6765,
+   "lon": -5.9926,
+   "name_ar": "سوق أربعاء الغرب",
+   "name_fr": "Souk El Arba Du Gharb"
+  },
+  {
+   "id": 12,
+   "lat": 34.9135,
+   "lon": -5.9326,
+   "name_ar": "عرباوة",
+   "name_fr": "Arbaoua"
+  },
+  {
+   "id": 13,
+   "lat": 34.8753,
+   "lon": -6.2963,
+   "name_ar": "مولاي بوسلهام"
+  },
+  {
+   "id": 14,
+   "lat": 35.7626,
+   "lon": -5.8295,
+   "name_ar": "طنجة",
+   "name_fr": "Tanger"
+  },
+  {
+   "id": 15,
+   "lat": 35.576,
+   "lon": -5.3613,
+   "name_ar": "تطوان",
+   "name_fr": "Tétouan"
+  },
+  {
+   "id": 16,
+   "lat": 35.1815,
+   "lon": -6.1343,
+   "name_ar": "العرائش",
+   "name_fr": "Larache"
+  },
+  {
+   "id": 17,
+   "lat": 35.4556,
+   "lon": -5.9217,
+   "name_ar": "أصيلة",
+   "name_fr": "Assilah"
+  },
+  {
+   "id": 18,
+   "lat": 35.1701,
+   "lon": -5.2767,
+   "name_ar": "شفشاون",
+   "name_fr": "Chefchaouen"
+  },
+  {
+   "id": 19,
+   "lat": 35.6174,
+   "lon": -5.2742,
+   "name_ar": "مرتيل",
+   "name_fr": "Martil"
+  },
+  {
+   "id": 20,
+   "lat": 35.6834,
+   "lon": -5.3232,
+   "name_ar": "المضيق",
+   "name_fr": "M'Diq"
+  },
+  {
+   "id": 21,
+   "lat": 35.005,
+   "lon": -5.9046,
+   "name_ar": "القصر الكبير",
+   "name_fr": "Ksar el-Kebir"
+  },
+  {
+   "id": 22,
+   "lat": 35.8006,
+   "lon": -5.6262,
+   "name_ar": "القصر الصغير",
+   "name_fr": "Ksar Sghir"
+  },
+  {
+   "id": 23,
+   "lat": 35.2361,
+   "lon": -3.9433,
+   "name_ar": "الحسيمة",
+   "name_fr": "Al Hoceïma"
+  },
+  {
+   "id": 24,
+   "lat": 33.5803,
+   "lon": -7.6176,
+   "name_ar": "سبتة",
+   "name_fr": "Rue de Sebta"
+  },
+  {
+   "id": 25,
+   "lat": 35.8392,
+   "lon": -5.3614,
+   "name_ar": "الفنيدق",
+   "name_fr": "Fnideq"
+  },
+  {
+   "id": 26,
+   "lat": 31.6411,
+   "lon": -7.9859,
+   "name_ar": "الجبهة"
+  },
+  {
+   "id": 27,
+   "lat": 35.4505,
+   "lon": -5.093,
+   "name_ar": "واد لاو",
+   "name_fr": "Oued Laou"
+  },
+  {
+   "id": 28,
+   "lat": 34.9989,
+   "lon": -4.8903,
+   "name_ar": "باب برد",
+   "name_fr": "Bab Berred"
+  },
+  {
+   "id": 29,
+   "lat": 34.7968,
+   "lon": -5.5785,
+   "name_ar": "وزان",
+   "name_fr": "Ouazzane"
+  },
+  {
+   "id": 30,
+   "name_ar": "بوسكور"
+  },
+  {
+   "id": 31,
+   "lat": 34.6779,
+   "lon": -1.9293,
+   "name_ar": "وجدة",
+   "name_fr": "Oujda"
+  },
+  {
+   "id": 32,
+   "lat": 34.9267,
+   "lon": -2.3294,
+   "name_ar": "بركان",
+   "name_fr": "Berkane"
+  },
+  {
+   "id": 33,
+   "lat": 32.115,
+   "lon": -1.2304,
+   "name_ar": "فكيك",
+   "name_fr": "Figuig"
+  },
+  {
+   "id": 34,
+   "lat": 32.5329,
+   "lon": -1.9632,
+   "name_ar": "بوعرفة",
+   "name_fr": "Bouarfa"
+  },
+  {
+   "id": 35,
+   "lat": 34.2274,
+   "lon": -3.3485,
+   "name_ar": "كرسيف"
+  },
+  {
+   "id": 36,
+   "lat": 34.3105,
+   "lon": -2.16,
+   "name_ar": "جرادة",
+   "name_fr": "Jerada"
+  },
+  {
+   "id": 37,
+   "lat": 32.2202,
+   "lon": -2.4873,
+   "name_ar": "عين الشعير",
+   "name_fr": "Ain Chair"
+  },
+  {
+   "id": 38,
+   "lat": 34.4134,
+   "lon": -2.8938,
+   "name_ar": "تاوريرت",
+   "name_fr": "Taourirt"
+  },
+  {
+   "id": 39,
+   "lat": 35.1736,
+   "lon": -2.9368,
+   "name_ar": "الناظور",
+   "name_fr": "Nador"
+  },
+  {
+   "id": 40,
+   "lat": 34.0233,
+   "lon": -6.8311,
+   "name_ar": "مليلية",
+   "name_fr": "Rue Melilia"
+  },
+  {
+   "id": 41,
+   "lat": 33.9864,
+   "lon": -3.0397,
+   "name_ar": "دبدو",
+   "name_fr": "Debdou"
+  },
+  {
+   "id": 42,
+   "lat": 35.0728,
+   "lon": -2.9417,
+   "name_ar": "سلوان",
+   "name_fr": "Selouane"
+  },
+  {
+   "id": 43,
+   "lat": 35.2597,
+   "lon": -2.9336,
+   "name_ar": "بني أنصار",
+   "name_fr": "Beni Ansar"
+  },
+  {
+   "id": 44,
+   "lat": 35.2861,
+   "lon": -2.9809,
+   "name_ar": "فرخانة",
+   "name_fr": "Farkhana"
+  },
+  {
+   "id": 45,
+   "lat": 32.5355,
+   "lon": -3.4395,
+   "name_ar": "تالسينت",
+   "name_fr": "Talsint"
+  },
+  {
+   "id": 46,
+   "lat": 33.0494,
+   "lon": -2.0001,
+   "name_ar": "تندرارة",
+   "name_fr": "Tendrara"
+  },
+  {
+   "id": 47,
+   "lat": 34.5783,
+   "lon": -2.503,
+   "name_ar": "العيون الشرقية",
+   "name_fr": "Al Aioun"
+  },
+  {
+   "id": 48,
+   "name_ar": "بني ادرار"
+  },
+  {
+   "id": 49,
+   "lat": 35.0822,
+   "lon": -2.2246,
+   "name_ar": "السعيدية",
+   "name_fr": "Saidia"
+  },
+  {
+   "id": 50,
+   "lat": 35.1373,
+   "lon": -2.4228,
+   "name_ar": "رأس الماء",
+   "name_fr": "Ras El Ma"
+  },
+  {
+   "id": 51,
+   "lat": 34.8055,
+   "lon": -2.4114,
+   "name_ar": "تافوغالت",
+   "name_fr": "Tafoughalt"
+  },
+  {
+   "id": 52,
+   "lat": 34.9163,
+   "lon": -2.2041,
+   "name_ar": "فزوان",
+   "name_fr": "Fezouane"
+  },
+  {
+   "id": 53,
+   "lat": 34.9553,
+   "lon": -2.1008,
+   "name_ar": "أحفير",
+   "name_fr": "Ahfir"
+  },
+  {
+   "id": 54,
+   "lat": 34.9419,
+   "lon": -2.7342,
+   "name_ar": "زايو",
+   "name_fr": "Zaïo"
+  },
+  {
+   "id": 55,
+   "lat": 34.9769,
+   "lon": -3.391,
+   "name_ar": "دريوش",
+   "name_fr": "Driouch"
+  },
+  {
+   "id": 56,
+   "lat": 32.1642,
+   "lon": -2.8761,
+   "name_ar": "بني تجيت",
+   "name_fr": "Cercle de Bni Tadjite"
+  },
+  {
+   "id": 57,
+   "lat": 32.0392,
+   "lon": -3.0493,
+   "name_ar": "بوعنان",
+   "name_fr": "Bouanane"
+  },
+  {
+   "id": 58,
+   "lat": 33.5945,
+   "lon": -7.62,
+   "name_ar": "الدار البيضاء",
+   "name_fr": "Casablanca"
+  },
+  {
+   "id": 59,
+   "lat": 33.6958,
+   "lon": -7.3893,
+   "name_ar": "المحمدية",
+   "name_fr": "Mohammédia"
+  },
+  {
+   "id": 60,
+   "lat": 33.6229,
+   "lon": -7.1267,
+   "name_ar": "بن سليمان",
+   "name_fr": "Benslimane"
+  },
+  {
+   "id": 61,
+   "lat": 33.0024,
+   "lon": -7.6199,
+   "name_ar": "سطات",
+   "name_fr": "Settat"
+  },
+  {
+   "id": 62,
+   "lat": 31.7147,
+   "lon": -4.197,
+   "name_ar": "الكارة"
+  },
+  {
+   "id": 63,
+   "lat": 32.505,
+   "lon": -7.1927,
+   "name_ar": "البروج",
+   "name_fr": "El Borouj"
+  },
+  {
+   "id": 64,
+   "lat": 33.2658,
+   "lon": -7.5839,
+   "name_ar": "ابن أحمد",
+   "name_fr": "Station de taxi Ben Ahmed - Khouribga"
+  },
+  {
+   "id": 65,
+   "lat": 33.2677,
+   "lon": -7.5811,
+   "name_ar": "برشيد",
+   "name_fr": "Berrechid"
+  },
+  {
+   "id": 66,
+   "lat": 33.2293,
+   "lon": -8.4994,
+   "name_ar": "الجديدة",
+   "name_fr": "El Jadida"
+  },
+  {
+   "id": 67,
+   "lat": 33.2881,
+   "lon": -8.3432,
+   "name_ar": "أزمور",
+   "name_fr": "Azemmour"
+  },
+  {
+   "id": 68,
+   "lat": 32.6508,
+   "lon": -8.4242,
+   "name_ar": "سيدي بنور",
+   "name_fr": "Sidi Bennour"
+  },
+  {
+   "id": 69,
+   "name_ar": "خميس الزمامرة"
+  },
+  {
+   "id": 70,
+   "lat": 32.9358,
+   "lon": -5.6697,
+   "name_ar": "خنيفرة",
+   "name_fr": "Khenifra"
+  },
+  {
+   "id": 71,
+   "lat": 33.2245,
+   "lon": -6.1979,
+   "name_ar": "مولاي بوعزة",
+   "name_fr": "Moulay Bouazza"
+  },
+  {
+   "id": 72,
+   "lat": 31.8456,
+   "lon": -6.0903,
+   "name_ar": "زاوية أحنصال",
+   "name_fr": "Zaouiat Ahansal"
+  },
+  {
+   "id": 73,
+   "lat": 32.3342,
+   "lon": -6.3533,
+   "name_ar": "بني ملال",
+   "name_fr": "Beni Mellal"
+  },
+  {
+   "id": 74,
+   "lat": 31.9593,
+   "lon": -6.571,
+   "name_ar": "أزيلال",
+   "name_fr": "Azilal"
+  },
+  {
+   "id": 75,
+   "name_ar": "الفقيه بنصالح"
+  },
+  {
+   "id": 76,
+   "lat": 31.7322,
+   "lon": -7.0027,
+   "name_ar": "دمنات",
+   "name_fr": "Demnate"
+  },
+  {
+   "id": 77,
+   "lat": 35.694,
+   "lon": -5.5607,
+   "name_ar": "القصيبة"
+  },
+  {
+   "id": 78,
+   "lat": 32.6029,
+   "lon": -6.2697,
+   "name_ar": "قصبة تادلة",
+   "name_fr": "Kasba Tadla"
+  },
+  {
+   "id": 79,
+   "lat": 32.8856,
+   "lon": -6.9088,
+   "name_ar": "خريبكة",
+   "name_fr": "Khouribga"
+  },
+  {
+   "id": 80,
+   "lat": 32.8606,
+   "lon": -6.5759,
+   "name_ar": "وادي زم"
+  },
+  {
+   "id": 81,
+   "lat": 34.0347,
+   "lon": -5.0162,
+   "name_ar": "فاس",
+   "name_fr": "Fès"
+  },
+  {
+   "id": 82,
+   "lat": 33.8249,
+   "lon": -4.8333,
+   "name_ar": "صفرو",
+   "name_fr": "Sefrou"
+  },
+  {
+   "id": 83,
+   "lat": 34.0875,
+   "lon": -5.1794,
+   "name_ar": "مولاي يعقوب",
+   "name_fr": "Moulay Yacoub"
+  },
+  {
+   "id": 84,
+   "lat": 33.3638,
+   "lon": -4.7296,
+   "name_ar": "بولمان",
+   "name_fr": "Boulemane"
+  },
+  {
+   "id": 85,
+   "lat": 33.0471,
+   "lon": -3.9926,
+   "name_ar": "ميسور",
+   "name_fr": "Missour"
+  },
+  {
+   "id": 86,
+   "lat": 33.8155,
+   "lon": -4.4069,
+   "name_ar": "رباط الخير",
+   "name_fr": "Ahermoumou"
+  },
+  {
+   "id": 87,
+   "name_ar": "المنزل بني يازغة"
+  },
+  {
+   "id": 88,
+   "lat": 33.7161,
+   "lon": -5.018,
+   "name_ar": "إموزار كندر"
+  },
+  {
+   "id": 89,
+   "lat": 34.2302,
+   "lon": -4.0101,
+   "name_ar": "تازة",
+   "name_fr": "Taza"
+  },
+  {
+   "id": 90,
+   "lat": 34.5385,
+   "lon": -4.636,
+   "name_ar": "تاونات",
+   "name_fr": "Taounate"
+  },
+  {
+   "id": 91,
+   "lat": 34.656,
+   "lon": -3.8653,
+   "name_ar": "أكنول",
+   "name_fr": "Aknoul"
+  },
+  {
+   "id": 92,
+   "lat": 34.7462,
+   "lon": -3.7278,
+   "name_ar": "تيزي وسلي",
+   "name_fr": "Tizi Ouzli"
+  },
+  {
+   "id": 93,
+   "lat": 34.7445,
+   "lon": -4.0882,
+   "name_ar": "بورد",
+   "name_fr": "Bourd"
+  },
+  {
+   "id": 94,
+   "lat": 34.0506,
+   "lon": -4.4224,
+   "name_ar": "تاهلة",
+   "name_fr": "Tahla"
+  },
+  {
+   "id": 95,
+   "lat": 34.2866,
+   "lon": -4.6656,
+   "name_ar": "تيسة",
+   "name_fr": "Tissa"
+  },
+  {
+   "id": 96,
+   "lat": 34.3641,
+   "lon": -5.2146,
+   "name_ar": "قرية با محمد",
+   "name_fr": "Karia Ba Mohamed"
+  },
+  {
+   "id": 97,
+   "lat": 34.8881,
+   "lon": -4.6239,
+   "name_ar": "كتامة",
+   "name_fr": "Ketama"
+  },
+  {
+   "id": 98,
+   "lat": 34.1916,
+   "lon": -4.2676,
+   "name_ar": "واد أمليل",
+   "name_fr": "Oued Amlil"
+  },
+  {
+   "id": 99,
+   "lat": 33.8984,
+   "lon": -5.5322,
+   "name_ar": "مكناس",
+   "name_fr": "Meknès"
+  },
+  {
+   "id": 100,
+   "name_ar": "يفرن"
+  },
+  {
+   "id": 101,
+   "lat": 33.6902,
+   "lon": -5.3719,
+   "name_ar": "الحاجب",
+   "name_fr": "El Hajeb"
+  },
+  {
+   "id": 102,
+   "lat": 35.0607,
+   "lon": -5.1749,
+   "name_ar": "زرهون",
+   "name_fr": "Zerhoun"
+  },
+  {
+   "id": 103,
+   "lat": 33.4416,
+   "lon": -5.227,
+   "name_ar": "آزرو",
+   "name_fr": "Azrou"
+  },
+  {
+   "id": 104,
+   "lat": 28.3348,
+   "lon": -10.3713,
+   "name_ar": "مراكش",
+   "name_fr": "Maroc"
+  },
+  {
+   "id": 105,
+   "lat": 32.0539,
+   "lon": -7.4069,
+   "name_ar": "قلعة السراغنة",
+   "name_fr": "El Kelâat Es-Sraghna"
+  },
+  {
+   "id": 106,
+   "lat": 31.5118,
+   "lon": -9.7621,
+   "name_ar": "الصويرة",
+   "name_fr": "Essaouira"
+  },
+  {
+   "id": 107,
+   "lat": 31.5463,
+   "lon": -8.7603,
+   "name_ar": "شيشاوة",
+   "name_fr": "Chichaoua"
+  },
+  {
+   "id": 108,
+   "lat": 32.2352,
+   "lon": -7.9568,
+   "name_ar": "بنجرير"
+  },
+  {
+   "id": 109,
+   "lat": 35.0796,
+   "lon": -6.154,
+   "name_ar": "الرحامنة",
+   "name_fr": "Rehamna"
+  },
+  {
+   "id": 110,
+   "lat": 31.0031,
+   "lon": -9.6782,
+   "name_ar": "تمنار",
+   "name_fr": "Tamanar"
+  },
+  {
+   "id": 111,
+   "lat": 32.2994,
+   "lon": -9.2395,
+   "name_ar": "آسفي",
+   "name_fr": "Pachalik de Safi"
+  },
+  {
+   "id": 112,
+   "lat": 32.7098,
+   "lon": -8.9626,
+   "name_ar": "الوليدية",
+   "name_fr": "Loualidia"
+  },
+  {
+   "id": 113,
+   "lat": 32.2458,
+   "lon": -8.5324,
+   "name_ar": "اليوسفية",
+   "name_fr": "Youssoufia"
+  },
+  {
+   "id": 114,
+   "lat": 31.5446,
+   "lon": -7.9822,
+   "name_ar": "تسلطانت",
+   "name_fr": "Tasoultante"
+  },
+  {
+   "id": 115,
+   "lat": 34.0148,
+   "lon": -6.8315,
+   "name_ar": "تامصلوحت",
+   "name_fr": "Rue Tamesloht"
+  },
+  {
+   "id": 116,
+   "name_ar": "قطارة"
+  },
+  {
+   "id": 117,
+   "lat": 30.4205,
+   "lon": -9.5839,
+   "name_ar": "أكادير",
+   "name_fr": "Agadir"
+  },
+  {
+   "id": 118,
+   "lat": 30.4707,
+   "lon": -8.8779,
+   "name_ar": "تارودانت",
+   "name_fr": "Taroudant"
+  },
+  {
+   "id": 119,
+   "lat": 29.6986,
+   "lon": -9.7313,
+   "name_ar": "تزنيت",
+   "name_fr": "Tiznit"
+  },
+  {
+   "id": 120,
+   "lat": 30.089,
+   "lon": -8.4609,
+   "name_ar": "إغرم",
+   "name_fr": "Irherm"
+  },
+  {
+   "id": 121,
+   "lat": 30.5315,
+   "lon": -7.9215,
+   "name_ar": "تالوين",
+   "name_fr": "Taliouine"
+  },
+  {
+   "id": 122,
+   "lat": 29.7205,
+   "lon": -8.9745,
+   "name_ar": "تافراوت",
+   "name_fr": "Tafraout"
+  },
+  {
+   "id": 123,
+   "lat": 29.7464,
+   "lon": -7.9696,
+   "name_ar": "طاطا",
+   "name_fr": "Tata"
+  },
+  {
+   "id": 124,
+   "lat": 29.3919,
+   "lon": -8.2568,
+   "name_ar": "أقا",
+   "name_fr": "Akka"
+  },
+  {
+   "id": 125,
+   "name_ar": "فم لحصن"
+  },
+  {
+   "id": 126,
+   "name_ar": "بويكرة"
+  },
+  {
+   "id": 127,
+   "lat": 30.3927,
+   "lon": -9.2133,
+   "name_ar": "أولاد تايمة",
+   "name_fr": "Ouled Teima"
+  },
+  {
+   "id": 128,
+   "lat": 31.9291,
+   "lon": -4.4341,
+   "name_ar": "الرشيدية",
+   "name_fr": "Errachidia"
+  },
+  {
+   "id": 129,
+   "lat": 31.2619,
+   "lon": -3.9593,
+   "name_ar": "الريصاني",
+   "name_fr": "Er-Rissani"
+  },
+  {
+   "id": 130,
+   "lat": 31.4324,
+   "lon": -4.2343,
+   "name_ar": "أرفود",
+   "name_fr": "Arfoud"
+  },
+  {
+   "id": 131,
+   "name_ar": "تنديت"
+  },
+  {
+   "id": 132,
+   "lat": 31.687,
+   "lon": -4.9593,
+   "name_ar": "كلميمة"
+  },
+  {
+   "id": 133,
+   "lat": 32.1561,
+   "lon": -5.6336,
+   "name_ar": "إملشيل",
+   "name_fr": "Imilchil"
+  },
+  {
+   "id": 134,
+   "lat": 31.5102,
+   "lon": -5.0338,
+   "name_ar": "تنجداد",
+   "name_fr": "Tinejdad"
+  },
+  {
+   "id": 135,
+   "lat": 32.2568,
+   "lon": -4.4982,
+   "name_ar": "الريش",
+   "name_fr": "Er-Rich"
+  },
+  {
+   "id": 136,
+   "lat": 32.6803,
+   "lon": -4.7399,
+   "name_ar": "ميدلت",
+   "name_fr": "Midelt"
+  },
+  {
+   "id": 137,
+   "lat": 30.3279,
+   "lon": -5.837,
+   "name_ar": "زاكورة",
+   "name_fr": "Zagora"
+  },
+  {
+   "id": 138,
+   "lat": 30.9202,
+   "lon": -6.9109,
+   "name_ar": "ورزازات",
+   "name_fr": "Ouarzazate"
+  },
+  {
+   "id": 139,
+   "lat": 31.5213,
+   "lon": -5.5312,
+   "name_ar": "تنغير",
+   "name_fr": "Tinghir"
+  },
+  {
+   "id": 140,
+   "name_ar": "هسكورة"
+  },
+  {
+   "id": 141,
+   "lat": 31.2379,
+   "lon": -6.1282,
+   "name_ar": "قلعة مكونة"
+  },
+  {
+   "id": 142,
+   "lat": 30.6943,
+   "lon": -6.4489,
+   "name_ar": "أكدز",
+   "name_fr": "Agdz"
+  },
+  {
+   "id": 143,
+   "lat": 31.3727,
+   "lon": -5.9866,
+   "name_ar": "بومالن دادس",
+   "name_fr": "Boumalne Dadès"
+  },
+  {
+   "id": 144,
+   "lat": 31.1163,
+   "lon": -5.1669,
+   "name_ar": "النيف",
+   "name_fr": "Alnif"
+  },
+  {
+   "id": 145,
+   "lat": 31.9497,
+   "lon": -5.203,
+   "name_ar": "أسول",
+   "name_fr": "Assoul"
+  },
+  {
+   "id": 146,
+   "lat": 31.6962,
+   "lon": -5.8187,
+   "name_ar": "أمسمرير",
+   "name_fr": "M'Semrir"
+  },
+  {
+   "id": 147,
+   "lat": 30.7831,
+   "lon": -5.5634,
+   "name_ar": "تازارين",
+   "name_fr": "Tazzarine"
+  },
+  {
+   "id": 148,
+   "lat": 29.3791,
+   "lon": -10.1716,
+   "name_ar": "سيدي إفني",
+   "name_fr": "Sidi Ifni"
+  },
+  {
+   "id": 149,
+   "lat": 28.9864,
+   "lon": -10.0574,
+   "name_ar": "كلميم",
+   "name_fr": "Guelmim"
+  },
+  {
+   "id": 150,
+   "lat": 27.9783,
+   "lon": -9.4936,
+   "name_ar": "أسا",
+   "name_fr": "Province Assa-Zag"
+  },
+  {
+   "id": 151,
+   "lat": 28.022,
+   "lon": -9.2946,
+   "name_ar": "الزاك",
+   "name_fr": "Zag"
+  },
+  {
+   "id": 152,
+   "lat": 28.4376,
+   "lon": -11.0987,
+   "name_ar": "طانطان",
+   "name_fr": "Tan-Tan"
+  },
+  {
+   "id": 153,
+   "lat": 29.1774,
+   "lon": -9.7114,
+   "name_ar": "بويزكارن",
+   "name_fr": "Bouizakarne"
+  },
+  {
+   "id": 154,
+   "lat": 27.4137,
+   "lon": -9.0497,
+   "name_ar": "المحبس",
+   "name_fr": "Al Mahbass"
+  },
+  {
+   "id": 155,
+   "lat": 26.1005,
+   "lon": -13.4813,
+   "name_ar": "لمسيد",
+   "name_fr": "Lamssid"
+  },
+  {
+   "id": 156,
+   "lat": 27.1545,
+   "lon": -13.1954,
+   "name_ar": "العيون",
+   "name_fr": "Laâyoune"
+  },
+  {
+   "id": 157,
+   "lat": 26.7436,
+   "lon": -11.6645,
+   "name_ar": "السمارة",
+   "name_fr": "Smara"
+  },
+  {
+   "id": 158,
+   "lat": 26.1263,
+   "lon": -14.4837,
+   "name_ar": "بوجدور",
+   "name_fr": "Boujdour"
+  },
+  {
+   "id": 159,
+   "lat": 27.9354,
+   "lon": -12.9234,
+   "name_ar": "طرفاية"
+  },
+  {
+   "id": 160,
+   "lat": 27.1551,
+   "lon": -13.2019,
+   "name_ar": "تفاريتي",
+   "name_fr": "Rue Tifariti"
+  },
+  {
+   "id": 161,
+   "lat": 26.3576,
+   "lon": -12.8444,
+   "name_ar": "بوكراع",
+   "name_fr": "Boukraa"
+  },
+  {
+   "id": 162,
+   "lat": 25.1488,
+   "lon": -12.3695,
+   "name_ar": "كلتة زمور",
+   "name_fr": "Gueltat Zemmour"
+  },
+  {
+   "id": 163,
+   "lat": 26.0752,
+   "lon": -11.7865,
+   "name_ar": "أمكالة",
+   "name_fr": "Amgala"
+  },
+  {
+   "id": 164,
+   "lat": 27.9331,
+   "lon": -11.963,
+   "name_ar": "أخفنير",
+   "name_fr": "Akhfennir"
+  },
+  {
+   "id": 165,
+   "lat": 23.6941,
+   "lon": -15.9431,
+   "name_ar": "الداخلة",
+   "name_fr": "Dakhla"
+  },
+  {
+   "id": 166,
+   "lat": 29.23,
+   "lon": -10.2284,
+   "name_ar": "الكويرة",
+   "name_fr": "Lagouira"
+  },
+  {
+   "id": 167,
+   "lat": 22.567,
+   "lon": -14.3129,
+   "name_ar": "أوسرد",
+   "name_fr": "Aousserd"
+  },
+  {
+   "id": 168,
+   "lat": 21.6166,
+   "lon": -16.4693,
+   "name_ar": "بئر كندوز"
+  },
+  {
+   "id": 169,
+   "lat": 35.1679,
+   "lon": -5.2665,
+   "name_ar": "بئر أنزاران",
+   "name_fr": "Place Bir Anzaran"
+  },
+  {
+   "id": 301,
+   "name_ar": "خميس سيدي عبد الجليل"
+  },
+  {
+   "id": 302,
+   "lat": 34.0839,
+   "lon": -4.6079,
+   "name_ar": "أولاد عياد",
+   "name_fr": "Oulad Ayyad"
+  },
+  {
+   "id": 303,
+   "lat": 34.0506,
+   "lon": -4.4224,
+   "name_ar": "تاهلة",
+   "name_fr": "Tahla"
+  },
+  {
+   "id": 304,
+   "lat": 34.0984,
+   "lon": -4.5509,
+   "name_ar": "مطماطة",
+   "name_fr": "Matmata"
+  },
+  {
+   "id": 305,
+   "lat": 31.1735,
+   "lon": -8.8519,
+   "name_ar": "إيمنتانوت",
+   "name_fr": "Imintanoute"
+  },
+  {
+   "id": 306,
+   "lat": 31.2865,
+   "lon": -9.4676,
+   "name_ar": "سيدي غانم",
+   "name_fr": "Sidi Ghaneme"
+  },
+  {
+   "id": 307,
+   "name_ar": "تفنتان"
+  },
+  {
+   "id": 308,
+   "name_ar": "آيت القاق"
+  },
+  {
+   "id": 309,
+   "name_ar": "أكدال أملشيل"
+  },
+  {
+   "id": 310,
+   "name_ar": "اكودال املشيل ميدلت"
+  },
+  {
+   "id": 311,
+   "name_ar": "أكايوار"
+  },
+  {
+   "id": 312,
+   "lat": 33.8031,
+   "lon": -6.7941,
+   "name_ar": "عين العودة",
+   "name_fr": "Ain El Aouda"
+  },
+  {
+   "id": 313,
+   "lat": 29.7619,
+   "lon": -9.007,
+   "name_ar": "أسكين",
+   "name_fr": "Asguin"
+  },
+  {
+   "id": 314,
+   "lat": 31.5639,
+   "lon": -7.6623,
+   "name_ar": "آيت ورير",
+   "name_fr": "Ait Ourir"
+  },
+  {
+   "id": 315,
+   "name_ar": "زاوية مولاي ابراهيم"
+  },
+  {
+   "id": 316,
+   "name_ar": "تولكولت"
+  },
+  {
+   "id": 317,
+   "name_ar": "إيكس"
+  },
+  {
+   "id": 318,
+   "name_ar": "كرس"
+  },
+  {
+   "id": 319,
+   "name_ar": "تيسنت"
+  },
+  {
+   "id": 320,
+   "lat": 30.0859,
+   "lon": -6.8749,
+   "name_ar": "فم زكيد",
+   "name_fr": "Foum Zguid"
+  },
+  {
+   "id": 321,
+   "name_ar": "قصر إيش"
+  },
+  {
+   "id": 322,
+   "name_ar": "إيمين ثلاث"
+  }
+ ],
+ "updated": "2026-10-03T02:15:14+00:00"
+}
