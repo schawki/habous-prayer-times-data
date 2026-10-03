@@ -30,7 +30,11 @@ Les heures sont les heures légales marocaines du jour concerné. `utc_offset` e
 
 `tools/build_data.py` lit la page des Habous **avec parcimonie** : une requête par ville seulement quand ses données expirent bientôt (environ une fois par mois hijri), avec une pause de 2 s entre deux requêtes, un User-Agent qui s'identifie, et jamais de contournement de la vérification des certificats. Si la page n'a pas la structure attendue, **rien n'est écrit** : les anciennes données restent en place plutôt que de publier des horaires faux.
 
-Le workflow GitHub est **manuel** (onglet Actions → « Mise à jour des données Habous » → Run workflow). Le déclenchement automatique est prêt mais commenté dans `.github/workflows/update-data.yml`.
+Le workflow GitHub tourne **chaque jour à 00:07 UTC**, mais il ne fait presque toujours rien : avec `--skip-if-fresh`, le script regarde d'abord dans `data/` si les fichiers de toutes les villes couvrent encore aujourd'hui, et s'arrête alors **sans aucune requête** vers le site des Habous. Une passe complète (la liste des villes, puis les 191 horaires, environ 13 minutes) n'a lieu qu'**au changement de mois hijri**, quand la page des Habous affiche le nouveau mois. Les passages automatiques ne cherchent pas de coordonnées (`--no-geocode`). Le workflow reste lançable à la main (onglet Actions → « Mise à jour des données Habous » → Run workflow), avec une marge de 7 jours et la recherche de coordonnées.
+
+### Fenêtre sans données au changement de mois
+
+La page des Habous ne présente que le mois hijri en cours : les horaires du nouveau mois n'existent dans ce dépôt que quelques dizaines de minutes après minuit le premier jour du mois (passage de 00:07 UTC + environ 13 minutes de traitement). Pendant ce court intervalle, l'intégration Home Assistant n'a pas le fichier du jour : si son option « Calcul local si le fichier du dépôt est absent ou périmé » est cochée (par défaut), elle calcule localement les horaires. Si le site n'a pas encore changé de mois, ou s'il est inaccessible, la passe est retentée le lendemain ; si toutes les villes échouent, le workflow échoue et GitHub envoie un e-mail.
 
 ### Essai sur une ville (sur votre Mac)
 

@@ -193,6 +193,20 @@ def times_payload(cid: int, days: dict, utc_offset: str | None) -> dict:
     return payload
 
 
+def needs_refresh(data_dir: Path, lookahead: int, today: date | None = None) -> bool:
+    """Faut-il contacter le site ? Oui si la liste des villes manque ou si le fichier d'une
+    ville ne couvre pas encore `today + lookahead` jours. Aucune requête réseau."""
+    cities = read_json(data_dir / "cities.json", {}).get("cities", [])
+    if not cities:
+        return True
+    horizon = ((today or date.today()) + timedelta(days=lookahead)).isoformat()
+    for city in cities:
+        days = read_json(data_dir / "times" / f"{city['id']}.json", {}).get("days", {})
+        if not days or max(days) < horizon:
+            return True
+    return False
+
+
 def build_times(
     cities: list[dict], data_dir: Path, lookahead: int, delay: float, utc_offset: str | None = None
 ) -> tuple[int, int]:
@@ -231,6 +245,14 @@ def main() -> int:
     ap.add_argument("--city", type=int, help="ne traiter que cette ville (essai) ; ex. 58")
     ap.add_argument("--utc-offset", help='décalage UTC écrit dans les fichiers, ex. "+00:00" (facultatif)')
     ap.add_argument("--ca-bundle", help="fichier de certificats (chaîne complète du site Habous)")
+    ap.add_argument(
+        "--skip-if-fresh", action="store_true",
+        help="ne rien faire (aucune requête) si tous les fichiers couvrent déjà la période",
+    )
+    ap.add_argument(
+        "--no-geocode", action="store_true",
+        help="ne pas chercher de coordonnées sur OpenStreetMap (passages automatiques)",
+    )
     args = ap.parse_args()
     data_dir = Path(args.data_dir)
     if args.utc_offset and not re.fullmatch(r"[+-]\d{2}:\d{2}", args.utc_offset):
@@ -239,6 +261,10 @@ def main() -> int:
     if args.ca_bundle:
         global _SSL_CONTEXT
         _SSL_CONTEXT = make_ssl_context(args.ca_bundle)
+
+    if args.skip_if_fresh and not needs_refresh(data_dir, args.lookahead):
+        print("Données à jour : aucune requête vers le site Habous.")
+        return 0
 
     try:
         all_cities = build_cities(data_dir, args.delay)
@@ -252,7 +278,10 @@ def main() -> int:
             print(f"Ville {args.city} absente de la liste Habous")
             return 1
     ok, failed = build_times(cities, data_dir, args.lookahead, args.delay, args.utc_offset)
-    report = refine_coordinates(cities, data_dir, args.city, args.utc_offset)
+    if args.no_geocode:
+        report: dict[str, list[int]] = {"removed": [], "unverified": [], "missing": []}
+    else:
+        report = refine_coordinates(cities, data_dir, args.city, args.utc_offset)
     save_cities(data_dir / "cities.json", all_cities)  # toujours la liste complète
     without = [c["id"] for c in cities if c.get("lat") is None]
     print(

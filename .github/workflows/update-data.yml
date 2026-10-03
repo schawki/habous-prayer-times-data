@@ -1,11 +1,12 @@
 name: Mise à jour des données Habous
 
 on:
-  # Volontairement MANUEL : rien n'est lu sur habous.gov.ma tant que vous ne lancez pas
-  # ce workflow. Pour l'automatiser (une fois l'autorisation des Habous réglée),
-  # décommentez le bloc schedule. Le script ne contacte le site pour une ville que si
-  # ses données expirent dans moins de --lookahead jours : en pratique ~1 passage par
-  # mois hijri, même si le déclenchement est hebdomadaire.
+  # Passage quotidien, mais presque toujours sans effet : le script regarde d'abord dans
+  # data/ si tous les fichiers couvrent encore aujourd'hui (--skip-if-fresh) et s'arrête alors
+  # sans contacter le site Habous. Une passe complète (liste des villes + 191 horaires, ~13 min)
+  # n'a lieu qu'au changement de mois hijri. Lancement manuel toujours possible.
+  schedule:
+    - cron: "7 0 * * *"
   workflow_dispatch:
     inputs:
       city:
@@ -16,8 +17,6 @@ on:
         description: 'Décalage UTC à écrire dans les fichiers, ex. +00:00 (facultatif)'
         required: false
         default: ""
-  # schedule:
-  #   - cron: "17 5 * * 1"   # chaque lundi ; ne lit le site que si les données expirent bientôt
 
 permissions:
   contents: write
@@ -34,8 +33,15 @@ jobs:
         env:
           CITY: ${{ inputs.city }}
           UTC_OFFSET: ${{ inputs.utc_offset }}
+          EVENT: ${{ github.event_name }}
         run: |
-          args=(--data-dir data --lookahead 7 --ca-bundle certs/habous-intermediate.pem)
+          args=(--data-dir data --ca-bundle certs/habous-intermediate.pem)
+          if [ "$EVENT" = "schedule" ]; then
+            # Automatique : seulement si les données ne couvrent plus aujourd'hui, sans géocodage.
+            args+=(--lookahead 0 --skip-if-fresh --no-geocode)
+          else
+            args+=(--lookahead 7)
+          fi
           [ -n "$CITY" ] && args+=(--city "$CITY")
           [ -n "$UTC_OFFSET" ] && args+=(--utc-offset "$UTC_OFFSET")
           python tools/build_data.py "${args[@]}"

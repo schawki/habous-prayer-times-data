@@ -279,3 +279,57 @@ class RefineTests(unittest.TestCase):
         self.assertEqual(cities[104]["lat"], 31.6295)
         self.assertEqual(cities[40]["name_fr"], "Melilla")
         self.assertTrue(cities[24]["verified"])
+
+
+class FreshnessTests(unittest.TestCase):
+    """--skip-if-fresh : aucune requête quand tous les fichiers couvrent déjà la période."""
+
+    TODAY = date(2026, 10, 3)
+
+    def _write(self, tmp, covered_until):
+        (Path(tmp) / "times").mkdir(exist_ok=True)
+        (Path(tmp) / "cities.json").write_text(json.dumps({"cities": [{"id": 1}, {"id": 2}]}), "utf-8")
+        for cid, last in covered_until.items():
+            days = {(self.TODAY + timedelta(days=i)).isoformat(): {} for i in range((last - self.TODAY).days + 1)}
+            (Path(tmp) / "times" / f"{cid}.json").write_text(json.dumps({"days": days}), "utf-8")
+
+    def test_fresh_when_every_city_covers_today(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self._write(tmp, {1: date(2026, 10, 12), 2: date(2026, 10, 12)})
+            self.assertFalse(build.needs_refresh(Path(tmp), 0, self.TODAY))
+
+    def test_refresh_when_one_city_expired_or_missing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self._write(tmp, {1: date(2026, 10, 12), 2: date(2026, 10, 2)})
+            self.assertTrue(build.needs_refresh(Path(tmp), 0, self.TODAY))
+        with tempfile.TemporaryDirectory() as tmp:
+            self._write(tmp, {1: date(2026, 10, 12)})  # fichier de la ville 2 absent
+            self.assertTrue(build.needs_refresh(Path(tmp), 0, self.TODAY))
+
+    def test_lookahead_widens_the_margin(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self._write(tmp, {1: date(2026, 10, 5), 2: date(2026, 10, 5)})
+            self.assertFalse(build.needs_refresh(Path(tmp), 0, self.TODAY))
+            self.assertTrue(build.needs_refresh(Path(tmp), 7, self.TODAY))
+
+    def test_refresh_when_no_city_list(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertTrue(build.needs_refresh(Path(tmp), 0, self.TODAY))
+
+    def test_main_skips_without_any_request(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            today = date.today()
+            (Path(tmp) / "times").mkdir()
+            (Path(tmp) / "cities.json").write_text(json.dumps({"cities": [{"id": 1}]}), "utf-8")
+            days = {(today + timedelta(days=i)).isoformat(): {} for i in range(5)}
+            (Path(tmp) / "times" / "1.json").write_text(json.dumps({"days": days}), "utf-8")
+            with mock.patch.object(build, "http_get", side_effect=AssertionError("réseau interdit")), \
+                 mock.patch.object(sys, "argv", ["b", "--data-dir", tmp, "--lookahead", "0", "--skip-if-fresh"]):
+                self.assertEqual(build.main(), 0)
+
+    def test_workflow_is_scheduled_and_automatic_runs_stay_gentle(self):
+        wf = (Path(__file__).resolve().parent.parent / ".github/workflows/update-data.yml").read_text("utf-8")
+        self.assertRegex(wf, r"(?m)^  schedule:")
+        self.assertIn("--skip-if-fresh", wf)
+        self.assertIn("--no-geocode", wf)
+        self.assertIn("--lookahead 0", wf)
