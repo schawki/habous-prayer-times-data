@@ -205,6 +205,18 @@ class CityCheckTests(unittest.TestCase):
         self.assertIsNone(check.pick_candidate([], implied))
 
 
+class NameVariantTests(unittest.TestCase):
+    def test_fold_and_variants(self):
+        self.assertEqual(check.fold_arabic("آيت أَنزاران"), "ايت انزاران")
+        v = check.name_variants("اكودال املشيل ميدلت")
+        self.assertEqual(v[0], "اكودال املشيل ميدلت, المغرب")
+        self.assertIn("اكودال املشيل, المغرب", v)
+        self.assertEqual(len(v), len(set(v)))
+        short = check.name_variants("آيت القاق")
+        self.assertNotIn("ايت, المغرب", short)
+        self.assertIn("القاق, المغرب", short)
+
+
 class RefineTests(unittest.TestCase):
     """Reproduit l'erreur réelle : Marrakech géocodée près de Tiznit avec le nom « Maroc »."""
 

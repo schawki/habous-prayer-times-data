@@ -88,3 +88,43 @@ def pick_candidate(candidates: list[dict], implied: float | None, tolerance: flo
     if abs(float(best["lon"]) - implied) <= tolerance:
         return best, True
     return None
+
+
+_ARABIC_FOLD = str.maketrans({"أ": "ا", "إ": "ا", "آ": "ا", "ى": "ي", "ة": "ه", "ؤ": "و", "ئ": "ي"})
+_DIACRITICS = re.compile("[\u064b-\u0652\u0640]")
+
+
+def fold_arabic(text: str) -> str:
+    """Graphie simplifiée (أ/إ/آ → ا, ة → ه, ى → ي, sans voyelles) : les noms Habous et OSM
+    ne s'écrivent pas toujours pareil."""
+    return _DIACRITICS.sub("", text).translate(_ARABIC_FOLD)
+
+
+def name_variants(name_ar: str | None, name_fr: str | None = None) -> list[str]:
+    """Requêtes à essayer, de la plus précise à la plus large (sans doublons)."""
+    out: list[str] = []
+
+    def add(q: str) -> None:
+        q = " ".join(q.split())
+        if q and q not in out:
+            out.append(q)
+
+    if name_ar:
+        folded = fold_arabic(name_ar)
+        for base in (name_ar, folded):
+            add(f"{base}, المغرب")
+        words = folded.split()
+        if len(words) > 1:
+            add(f"{' '.join(words[:2])}, المغرب")  # ex. « اكودال املشيل ميدلت » → « اكودال املشيل »
+            if len(words[0]) > 3:
+                add(f"{words[0]}, المغرب")  # pas un préfixe courant (آيت, بئر…)
+            else:
+                add(f"{' '.join(words[1:])}, المغرب")
+        add(f"دوار {folded}, المغرب")
+        add(f"جماعة {folded}, المغرب")
+        add(name_ar)
+    if name_fr:
+        add(f"{name_fr}, Maroc")
+    return out
+
+

@@ -158,12 +158,13 @@ def refine_coordinates(
                 city.pop(field, None)
             if cid not in curated or not curated[cid].get("name_fr"):
                 city.pop("name_fr", None)  # le nom venait de la même mauvaise recherche
-        names = [n for n in (city.get("name_ar"), city.get("name_fr")) if n]
         picked = None
-        for name in names:
-            picked = check.pick_candidate(geocode_candidates(f"{name}, المغرب" if ARABIC.search(name) else f"{name}, Maroc"), implied)
-            if picked:
-                break
+        pool: list[dict] = []
+        for query in check.name_variants(city.get("name_ar"), city.get("name_fr")):
+            pool += geocode_candidates(query)
+            picked = check.pick_candidate(pool, implied)
+            if picked and picked[1]:
+                break  # vérifié par le Dhuhr : inutile de chercher plus loin
         if not picked:
             report["missing"].append(cid)
             continue
