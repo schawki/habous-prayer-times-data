@@ -3,10 +3,10 @@
 Ce module n'a aucune dépendance à Home Assistant afin d'être testable seul
 et réutilisable par tools/build_data.py.
 
-ATTENTION : la structure réelle de la page n'a pas pu être vérifiée au moment
-de l'écriture (robots.txt). Le parseur est donc volontairement tolérant et
-*strict sur le résultat* : si les dates reconstituées ne sont pas cohérentes,
-il lève ParseError au lieu de produire des horaires faux.
+Vérifié le 2026-10-03 sur une vraie page (tests/fixtures/habous_58_2026-10-03.html) :
+191 villes, 30 jours par page. Le parseur reste *strict sur le résultat* : si les
+dates reconstituées ne sont pas cohérentes, il lève ParseError au lieu de produire
+des horaires faux.
 """
 
 from __future__ import annotations
@@ -18,6 +18,8 @@ from html.parser import HTMLParser
 PRAYERS = ["fajr", "sunrise", "dhuhr", "asr", "maghrib", "isha"]
 _TIME_RE = re.compile(r"^\s*(\d{1,2})\s*[:hH]\s*(\d{2})\s*$")
 _INT_RE = re.compile(r"^\s*(\d{1,2})\s*$")
+# Les options du sélecteur valent « index.php?ville=58 » sur la vraie page.
+_CITY_ID_RE = re.compile(r"(?:ville=)?(\d+)\s*$")
 
 
 class ParseError(Exception):
@@ -86,12 +88,12 @@ def parse_cities(html: str) -> list[dict[str, str]]:
     p.feed(html)
     best: list[tuple[str, str]] = []
     for options in p.selects:
-        valid = [(v, t) for v, t in options if v.strip().isdigit() and t]
+        valid = [(v, t) for v, t in options if _CITY_ID_RE.search(v.strip()) and t]
         if len(valid) > len(best):
             best = valid
     if len(best) < 10:
         raise ParseError("Sélecteur de villes introuvable")
-    return [{"id": int(v), "name": t} for v, t in best]
+    return [{"id": int(_CITY_ID_RE.search(v.strip()).group(1)), "name": t} for v, t in best]
 
 
 def parse_month(html: str, today: date) -> dict[str, dict[str, str]]:

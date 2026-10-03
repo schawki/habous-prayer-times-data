@@ -63,7 +63,7 @@ class BuilderTests(unittest.TestCase):
     def _run(self, argv, page):
         with tempfile.TemporaryDirectory() as tmp, \
              mock.patch.object(build, "http_get", return_value=page), \
-             mock.patch.object(build, "geocode", return_value=(34.0, -6.8)) as geo, \
+             mock.patch.object(build, "geocode", return_value=(34.0, -6.8, "Ville")) as geo, \
              mock.patch.object(build.time, "sleep"), \
              mock.patch.object(sys, "argv", ["build_data.py", "--data-dir", tmp, *argv]):
             code = build.main()
@@ -94,3 +94,47 @@ class BuilderTests(unittest.TestCase):
         code, files, _ = self._run(["--city", "3"], "<html>rien</html>")
         self.assertEqual(code, 1)
         self.assertEqual(files, {})
+
+
+FIXTURE = Path(__file__).resolve().parent / "fixtures" / "habous_58_2026-10-03.html"
+
+
+class RealPageTests(unittest.TestCase):
+    """Page réelle (Casablanca) enregistrée le 2026-10-03."""
+
+    html = FIXTURE.read_text("utf-8")
+
+    def test_cities(self):
+        cities = parser.parse_cities(self.html)
+        self.assertEqual(len(cities), 191)
+        self.assertEqual(cities[0], {"id": 1, "name": "الرباط"})
+        self.assertIn(58, [c["id"] for c in cities])
+        self.assertEqual(cities[-1]["id"], 322)
+
+    def test_month(self):
+        out = parser.parse_month(self.html, date(2026, 10, 3))
+        self.assertEqual((min(out), max(out), len(out)), ("2026-09-13", "2026-10-12", 30))
+        self.assertEqual(
+            out["2026-10-03"],
+            {"fajr": "04:58", "sunrise": "06:23", "dhuhr": "12:25",
+             "asr": "15:41", "maghrib": "18:17", "isha": "19:30"},
+        )
+
+    def test_trial_city_58_from_real_page(self):
+        with tempfile.TemporaryDirectory() as tmp, \
+             mock.patch.object(build, "http_get", return_value=self.html), \
+             mock.patch.object(build, "geocode", return_value=(33.57, -7.59, "Casablanca")), \
+             mock.patch.object(build.time, "sleep"), \
+             mock.patch.object(build, "date") as fake_date, \
+             mock.patch.object(sys, "argv", ["b", "--data-dir", tmp, "--city", "58", "--utc-offset", "+00:00"]):
+            fake_date.today.return_value = date(2026, 10, 3)
+            fake_date.side_effect = date
+            self.assertEqual(build.main(), 0)
+            data = json.loads((Path(tmp) / "times" / "58.json").read_text("utf-8"))
+            cities = json.loads((Path(tmp) / "cities.json").read_text("utf-8"))["cities"]
+        self.assertEqual(data["utc_offset"], "+00:00")
+        self.assertEqual(data["days"]["2026-10-03"]["fajr"], "04:58")
+        self.assertEqual(len(cities), 191)
+        casa = next(c for c in cities if c["id"] == 58)
+        self.assertEqual((casa["name_ar"], casa["name_fr"]), ("الدار البيضاء", "Casablanca"))
+        self.assertNotIn("name_fr", next(c for c in cities if c["id"] == 1))

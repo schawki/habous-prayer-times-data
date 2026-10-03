@@ -65,8 +65,11 @@ def write_json(path: Path, payload) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=1, sort_keys=True) + "\n", "utf-8")
 
 
-def geocode(name: str) -> tuple[float, float] | None:
-    query = urllib.parse.urlencode({"q": f"{name}, Maroc", "format": "json", "limit": 1})
+def geocode(name: str) -> tuple[float, float, str | None] | None:
+    """(lat, lon, nom français ou None) ; le nom français vient d'OpenStreetMap."""
+    query = urllib.parse.urlencode(
+        {"q": f"{name}, Maroc", "format": "json", "limit": 1, "accept-language": "fr"}
+    )
     try:
         results = json.loads(http_get(f"{NOMINATIM}?{query}"))
     except Exception as err:  # noqa: BLE001
@@ -80,7 +83,10 @@ def geocode(name: str) -> tuple[float, float] | None:
     if not (20.0 <= lat <= 37.5 and -18.0 <= lon <= 0.0):
         print(f"  coordonnées hors du Maroc pour {name}: {lat},{lon} -> ignorées")
         return None
-    return round(lat, 4), round(lon, 4)
+    name_fr = results[0].get("name") or results[0].get("display_name", "").split(",")[0].strip()
+    if not name_fr or ARABIC.search(name_fr):
+        name_fr = None  # OSM n'a pas de nom français : on garde l'arabe
+    return round(lat, 4), round(lon, 4), name_fr
 
 
 def build_cities(data_dir: Path, delay: float, only: int | None = None) -> list[dict]:
@@ -98,9 +104,11 @@ def build_cities(data_dir: Path, delay: float, only: int | None = None) -> list[
         key = "name_ar" if ARABIC.search(label) else "name_fr"
         city[key] = label
         if city.get("lat") is None and only in (None, cid):
-            coords = geocode(city.get("name_fr") or label)
-            if coords:
-                city["lat"], city["lon"] = coords
+            found = geocode(city.get("name_fr") or label)
+            if found:
+                city["lat"], city["lon"] = found[0], found[1]
+                if not city.get("name_fr") and found[2]:
+                    city["name_fr"] = found[2]
         cities.append(city)
     cities.sort(key=lambda c: c["id"])
     write_json(path, {"updated": datetime.now(timezone.utc).isoformat(timespec="seconds"), "cities": cities})
