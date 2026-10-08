@@ -14,7 +14,7 @@ on:
         required: false
         default: ""
       utc_offset:
-        description: 'Décalage UTC à écrire dans les fichiers, ex. +00:00 (facultatif)'
+        description: 'Impose le décalage UTC, ex. +00:00. Vide = déduit automatiquement (recommandé).'
         required: false
         default: ""
 

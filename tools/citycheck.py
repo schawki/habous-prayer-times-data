@@ -49,11 +49,56 @@ def implied_longitude(dhuhr_hhmm: str, day: date, utc_offset: str | None) -> flo
     return (720 - equation_of_time(day) + DHUHR_OFFSET_MIN - utc_min) / 4
 
 
-def city_implied_longitude(times: dict, utc_offset: str | None) -> float | None:
-    """Médiane sur les jours du fichier (robuste aux arrondis d'une minute)."""
+def format_offset(minutes: int) -> str:
+    """90 -> "+01:30", -60 -> "-01:00"."""
+    sign = "-" if minutes < 0 else "+"
+    return f"{sign}{abs(minutes) // 60:02d}:{abs(minutes) % 60:02d}"
+
+
+# Déduction du décalage de l'heure légale à partir des heures publiées (voir infer_offset).
+MIN_CITIES_FOR_OFFSET = 20   # au moins autant de villes aux coordonnées vérifiées
+OFFSET_STEP_MIN = 30         # les décalages légaux sont des multiples de 30 minutes
+OFFSET_ROUND_TOLERANCE = 10  # écart maximal entre la médiane et le multiple retenu (minutes)
+OFFSET_AGREEMENT = 0.9       # part des villes à moins de 15 minutes de la médiane
+OFFSET_SPREAD_MIN = 15
+
+
+def infer_offset(day: date, samples: list[tuple[float, str]]) -> str | None:
+    """Décalage de l'heure légale ("+00:00") déduit des Dhuhr publiés ce jour-là, ou None.
+
+    `samples` : (longitude vérifiée, Dhuhr "HH:MM") pour des villes différentes. Pour chacune,
+    l'écart entre l'heure publiée et le midi solaire calculé à sa longitude vaut le décalage
+    légal, à quelques minutes près. On prend la médiane, arrondie à 30 minutes ; si les villes
+    sont trop peu nombreuses ou en désaccord, ou si la médiane n'est pas proche d'un multiple
+    de 30 minutes, on renvoie None plutôt que de deviner.
+    """
+    estimates = []
+    for lon, hhmm in samples:
+        h, m = map(int, hhmm.split(":"))
+        solar_noon = 720 - equation_of_time(day) + DHUHR_OFFSET_MIN - 4 * lon  # minutes UTC
+        estimates.append(h * 60 + m - solar_noon)
+    if len(estimates) < MIN_CITIES_FOR_OFFSET:
+        return None
+    estimates.sort()
+    median = estimates[len(estimates) // 2]
+    close = sum(1 for e in estimates if abs(e - median) <= OFFSET_SPREAD_MIN)
+    if close / len(estimates) < OFFSET_AGREEMENT:
+        return None
+    rounded = round(median / OFFSET_STEP_MIN) * OFFSET_STEP_MIN
+    if abs(median - rounded) > OFFSET_ROUND_TOLERANCE:
+        return None
+    return format_offset(int(rounded))
+
+
+def city_implied_longitude(
+    times: dict, utc_offset: str | None, offsets: dict | None = None
+) -> float | None:
+    """Médiane sur les jours du fichier (robuste aux arrondis d'une minute).
+
+    `offsets` : décalage par jour (prioritaire sur `utc_offset`) quand le fichier en contient."""
     values = []
     for iso, day_times in sorted(times.items())[:15]:
-        lon = implied_longitude(day_times["dhuhr"], date.fromisoformat(iso), utc_offset)
+        lon = implied_longitude(day_times["dhuhr"], date.fromisoformat(iso), (offsets or {}).get(iso) or utc_offset)
         if lon is not None:
             values.append(lon)
     if not values:

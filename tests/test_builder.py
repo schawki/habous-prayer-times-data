@@ -77,18 +77,23 @@ class BuilderTests(unittest.TestCase):
 
     def test_single_city_trial_writes_one_file_and_geocodes_once(self):
         page = synthetic_page(date.today() - timedelta(days=5))
-        code, files, geo = self._run(["--city", "3"], page)
+        code, files, geo = self._run(["--city", "3", "--utc-offset", "+00:00"], page)
         self.assertEqual(code, 0)
         self.assertIn("3.json", files)
         self.assertEqual(sum(n.endswith(".json") and n[:-5].isdigit() for n in files), 1)
         self.assertEqual(geo.call_count, 1)
         self.assertEqual(files["3.json"]["timezone"], "Africa/Casablanca")
-        self.assertNotIn("utc_offset", files["3.json"])
 
     def test_utc_offset_written_when_given(self):
         page = synthetic_page(date.today() - timedelta(days=5))
         _, files, _ = self._run(["--city", "3", "--utc-offset", "+00:00"], page)
         self.assertEqual(files["3.json"]["utc_offset"], "+00:00")
+        self.assertEqual(set(files["3.json"]["offsets"].values()), {"+00:00"})
+
+    def test_without_override_and_without_verified_cities_the_run_fails_loudly(self):
+        page = synthetic_page(date.today() - timedelta(days=5))
+        code, _, _ = self._run(["--city", "3"], page)
+        self.assertEqual(code, 1)  # offset undeterminable: nothing may be published
 
     def test_bad_offset_rejected(self):
         code, files, _ = self._run(["--utc-offset", "1h"], "")
@@ -163,7 +168,7 @@ class SslTests(unittest.TestCase):
              mock.patch.object(build, "geocode_candidates", return_value=[cand(34.0, -6.8)]), \
              mock.patch.object(build.time, "sleep"), \
              mock.patch.object(build, "_SSL_CONTEXT", None), \
-             mock.patch.object(sys, "argv", ["b", "--data-dir", tmp, "--city", "3", "--ca-bundle", str(self.CERT)]):
+             mock.patch.object(sys, "argv", ["b", "--data-dir", tmp, "--city", "3", "--utc-offset", "+00:00", "--ca-bundle", str(self.CERT)]):
             self.assertEqual(build.main(), 0)
             self.assertIsNotNone(build._SSL_CONTEXT)
 
@@ -221,8 +226,8 @@ class RefineTests(unittest.TestCase):
     """Reproduit l'erreur réelle : Marrakech géocodée près de Tiznit avec le nom « Maroc »."""
 
     def _run(self, cities, found):
-        page = synthetic_page(date.today())
-        days = parser.parse_month(page, date.today())
+        page = synthetic_page(date(2026, 10, 3))
+        days = parser.parse_month(page, date(2026, 10, 3))
         # Dhuhr 13:35 +00:00 -> longitude implicite ~ -22° : on fixe plutôt Dhuhr à 12:25 (≈ -7,6°)
         days = {d: {**t, "dhuhr": "12:25"} for d, t in days.items()}
         with tempfile.TemporaryDirectory() as tmp:
@@ -272,13 +277,137 @@ class RefineTests(unittest.TestCase):
              mock.patch.object(build, "http_get", return_value=page), \
              mock.patch.object(build, "geocode_candidates", return_value=[]), \
              mock.patch.object(build.time, "sleep"), \
-             mock.patch.object(sys, "argv", ["b", "--data-dir", tmp, "--city", "58"]):
+             mock.patch.object(sys, "argv", ["b", "--data-dir", tmp, "--city", "58", "--utc-offset", "+00:00"]):
             self.assertEqual(build.main(), 0)
             cities = {c["id"]: c for c in json.loads((Path(tmp) / "cities.json").read_text("utf-8"))["cities"]}
         self.assertEqual(cities[104]["name_fr"], "Marrakech")
         self.assertEqual(cities[104]["lat"], 31.6295)
         self.assertEqual(cities[40]["name_fr"], "Melilla")
         self.assertTrue(cities[24]["verified"])
+
+
+def dhuhr_for(lon: float, day: date, offset_min: int) -> str:
+    """Dhuhr publié à une longitude donnée, pour un décalage légal donné (en minutes)."""
+    solar_noon = 720 - check.equation_of_time(day) + check.DHUHR_OFFSET_MIN - 4 * lon
+    total = round(solar_noon + offset_min)
+    return f"{total // 60:02d}:{total % 60:02d}"
+
+
+LONGITUDES = [-13 + i * 0.3 for i in range(30)]  # 30 villes de l'ouest à l'est du Maroc
+
+
+class OffsetInferenceTests(unittest.TestCase):
+    DAY = date(2026, 10, 8)
+
+    def samples(self, offset_min, lons=LONGITUDES):
+        return [(lon, dhuhr_for(lon, self.DAY, offset_min)) for lon in lons]
+
+    def test_offset_is_deduced_from_published_dhuhr(self):
+        self.assertEqual(check.infer_offset(self.DAY, self.samples(0)), "+00:00")
+        self.assertEqual(check.infer_offset(self.DAY, self.samples(60)), "+01:00")
+        self.assertEqual(check.infer_offset(self.DAY, self.samples(-60)), "-01:00")
+
+    def test_too_few_cities_gives_no_answer(self):
+        self.assertIsNone(check.infer_offset(self.DAY, self.samples(0, LONGITUDES[:5])))
+
+    def test_disagreeing_cities_give_no_answer(self):
+        mixed = self.samples(0)[:15] + self.samples(60)[15:]
+        self.assertIsNone(check.infer_offset(self.DAY, mixed))
+
+    def test_a_fifteen_minute_shift_is_not_a_legal_offset(self):
+        self.assertIsNone(check.infer_offset(self.DAY, self.samples(15)))
+
+    def test_one_minute_rounding_does_not_matter(self):
+        noisy = [(lon, t) for lon, t in self.samples(60)]
+        noisy[0] = (noisy[0][0], dhuhr_for(noisy[0][0], self.DAY, 61))
+        self.assertEqual(check.infer_offset(self.DAY, noisy), "+01:00")
+
+    def test_real_data_gives_plus_zero(self):
+        # Casablanca, 2026-10-03, +00:00 (page enregistrée) : le Dhuhr 12:25 est à -7,6°.
+        samples = [(-7.62 + i * 0.02, "12:25") for i in range(-10, 10)]
+        self.assertEqual(check.infer_offset(date(2026, 10, 3), samples), "+00:00")
+
+
+class AnnotateOffsetsTests(unittest.TestCase):
+    FIRST = date(2026, 10, 8)
+
+    def setup_dir(self, tmp, switch_after=None, old=None):
+        """30 villes vérifiées ; l'heure légale passe à +01:00 après `switch_after` (ou jamais)."""
+        (Path(tmp) / "times").mkdir(exist_ok=True)
+        cities = []
+        for i, lon in enumerate(LONGITUDES, start=1):
+            days = {}
+            for k in range(6):
+                d = self.FIRST + timedelta(days=k)
+                off = 60 if switch_after is not None and d > switch_after else 0
+                t = {p: "05:00" for p in parser.PRAYERS}
+                t["dhuhr"] = dhuhr_for(lon, d, off)
+                days[d.isoformat()] = t
+            payload = {"city_id": i, "days": days}
+            if old:
+                payload.update(old)
+            (Path(tmp) / "times" / f"{i}.json").write_text(json.dumps(payload), "utf-8")
+            cities.append({"id": i, "lat": 33.0, "lon": lon, "verified": True})
+        return cities
+
+    def read(self, tmp, cid=1):
+        return json.loads((Path(tmp) / "times" / f"{cid}.json").read_text("utf-8"))
+
+    def test_every_day_gets_its_offset(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            cities = self.setup_dir(tmp)
+            self.assertEqual(build.annotate_offsets(cities, Path(tmp)), [])
+            data = self.read(tmp)
+        self.assertEqual(set(data["offsets"].values()), {"+00:00"})
+        self.assertEqual(len(data["offsets"]), 6)
+        self.assertEqual(data["utc_offset"], "+00:00")
+
+    def test_legal_time_change_in_the_middle_of_a_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            cities = self.setup_dir(tmp, switch_after=self.FIRST + timedelta(days=2))
+            self.assertEqual(build.annotate_offsets(cities, Path(tmp)), [])
+            data = self.read(tmp)
+        offs = [data["offsets"][(self.FIRST + timedelta(days=k)).isoformat()] for k in range(6)]
+        self.assertEqual(offs, ["+00:00"] * 3 + ["+01:00"] * 3)
+        self.assertEqual(data["utc_offset"], "+01:00")  # le dernier jour
+
+    def test_undecidable_days_are_reported_and_not_guessed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            cities = self.setup_dir(tmp)
+            for c in cities:
+                c.pop("verified")  # plus aucune ville vérifiée
+            undecided = build.annotate_offsets(cities, Path(tmp))
+            data = self.read(tmp)
+        self.assertEqual(len(undecided), 6)
+        self.assertNotIn("offsets", data)
+
+    def test_previous_value_is_kept_when_deduction_fails(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            old = {"offsets": {(self.FIRST + timedelta(days=k)).isoformat(): "+00:00" for k in range(6)}}
+            cities = self.setup_dir(tmp, old=old)
+            for c in cities:
+                c.pop("verified")
+            self.assertEqual(build.annotate_offsets(cities, Path(tmp)), [])
+            self.assertEqual(set(self.read(tmp)["offsets"].values()), {"+00:00"})
+
+    def test_override_applies_to_every_day(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            cities = self.setup_dir(tmp)
+            self.assertEqual(build.annotate_offsets(cities, Path(tmp), "+01:00"), [])
+            self.assertEqual(set(self.read(tmp)["offsets"].values()), {"+01:00"})
+
+    def test_second_run_changes_nothing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            cities = self.setup_dir(tmp)
+            build.annotate_offsets(cities, Path(tmp))
+            before = (Path(tmp) / "times" / "1.json").read_text("utf-8")
+            build.annotate_offsets(cities, Path(tmp))
+            self.assertEqual((Path(tmp) / "times" / "1.json").read_text("utf-8"), before)
+
+    def test_times_payload_keeps_known_offsets_for_kept_days_only(self):
+        payload = build.times_payload(1, {"2026-10-09": {}}, None, {"2026-10-08": "+00:00", "2026-10-09": "+01:00"})
+        self.assertEqual(payload["offsets"], {"2026-10-09": "+01:00"})
+        self.assertEqual(payload["utc_offset"], "+01:00")
 
 
 class FreshnessTests(unittest.TestCase):
@@ -340,6 +469,6 @@ class DocsTests(unittest.TestCase):
         root = Path(__file__).resolve().parent.parent
         doc = (root / "docs" / "DATA_FORMAT.md").read_text("utf-8")
         for field in ("id", "name_ar", "name_fr", "lat", "lon", "verified", "city_id", "timezone",
-                      "utc_offset", "updated", "days", "fajr", "sunrise", "dhuhr", "asr", "maghrib", "isha"):
+                      "utc_offset", "offsets", "updated", "days", "fajr", "sunrise", "dhuhr", "asr", "maghrib", "isha"):
             self.assertIn(f"`{field}`", doc, field)
         self.assertIn("docs/DATA_FORMAT.md", (root / "README.md").read_text("utf-8"))

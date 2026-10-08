@@ -147,7 +147,7 @@ def refine_coordinates(
             continue
         payload = read_json(data_dir / "times" / f"{cid}.json", {})
         implied = check.city_implied_longitude(
-            payload.get("days", {}), payload.get("utc_offset") or utc_offset
+            payload.get("days", {}), payload.get("utc_offset") or utc_offset, payload.get("offsets")
         )
         if city.get("lat") is not None:
             if implied is None or abs(city["lon"] - implied) <= check.TOLERANCE_DEG:
@@ -180,8 +180,13 @@ def refine_coordinates(
     return report
 
 
-def times_payload(cid: int, days: dict, utc_offset: str | None) -> dict:
-    """Contenu d'un fichier times/<id>.json (le décalage n'est écrit que s'il est fourni)."""
+def times_payload(
+    cid: int, days: dict, utc_offset: str | None, offsets: dict | None = None
+) -> dict:
+    """Contenu d'un fichier times/<id>.json.
+
+    `utc_offset` : décalage imposé (option), appliqué à tous les jours. Sinon `offsets` (jour ->
+    décalage) conserve ce qui a déjà été déduit ; `annotate_offsets` complète les jours neufs."""
     payload = {
         "city_id": cid,
         "timezone": TIMEZONE,
@@ -190,7 +195,64 @@ def times_payload(cid: int, days: dict, utc_offset: str | None) -> dict:
     }
     if utc_offset:
         payload["utc_offset"] = utc_offset
+        payload["offsets"] = {d: utc_offset for d in days}
+    elif offsets:
+        kept = {d: o for d, o in offsets.items() if d in days}
+        if kept:
+            payload["offsets"] = kept
+            payload["utc_offset"] = kept[max(kept)]
     return payload
+
+
+def annotate_offsets(
+    cities: list[dict], data_dir: Path, override: str | None = None
+) -> list[str]:
+    """Écrit, pour chaque jour, le décalage de l'heure légale déduit des Dhuhr publiés.
+
+    Pour un jour donné, les villes aux coordonnées vérifiées donnent chacune une estimation
+    (voir citycheck.infer_offset) : le décalage ne dépend donc d'aucun réglage ni d'aucune base
+    de fuseaux. Un jour déjà annoté garde sa valeur si la déduction échoue ; un jour sans valeur
+    et sans déduction possible est renvoyé (liste de dates) : il ne doit pas être publié.
+    `override` : décalage imposé, appliqué à tous les jours sans déduction.
+    """
+    files: dict[int, dict] = {}
+    samples: dict[str, list[tuple[float, str]]] = {}
+    verified = {c["id"]: c for c in cities if c.get("verified") and c.get("lon") is not None}
+    for city in cities:
+        payload = read_json(data_dir / "times" / f"{city['id']}.json", None)
+        if not payload or not payload.get("days"):
+            continue
+        files[city["id"]] = payload
+        if city["id"] in verified:
+            for iso, t in payload["days"].items():
+                samples.setdefault(iso, []).append((verified[city["id"]]["lon"], t["dhuhr"]))
+
+    inferred: dict[str, str] = {}
+    undecided: set[str] = set()
+    for iso in sorted({d for p in files.values() for d in p["days"]}):
+        if override:
+            inferred[iso] = override
+            continue
+        found = check.infer_offset(date.fromisoformat(iso), samples.get(iso, []))
+        if found:
+            inferred[iso] = found
+            continue
+        stored = {p.get("offsets", {}).get(iso) for p in files.values()} - {None}
+        if len(stored) == 1:
+            inferred[iso] = stored.pop()  # déduit lors d'un passage précédent
+        else:
+            undecided.add(iso)
+
+    for cid, payload in files.items():
+        offsets = {d: inferred[d] for d in payload["days"] if d in inferred}
+        if not offsets:
+            continue
+        latest = offsets[max(offsets)]
+        if payload.get("offsets") != offsets or payload.get("utc_offset") != latest:
+            payload["offsets"] = offsets
+            payload["utc_offset"] = latest
+            write_json(data_dir / "times" / f"{cid}.json", payload)
+    return sorted(undecided)
 
 
 def needs_refresh(data_dir: Path, lookahead: int, today: date | None = None) -> bool:
@@ -231,7 +293,7 @@ def build_times(
         days.update(fresh)
         cutoff = (today - timedelta(days=7)).isoformat()
         days = {d: t for d, t in days.items() if d >= cutoff}
-        write_json(path, times_payload(cid, days, utc_offset))
+        write_json(path, times_payload(cid, days, utc_offset, current.get("offsets")))
         ok += 1
         time.sleep(delay)
     return ok, failed
@@ -243,7 +305,11 @@ def main() -> int:
     ap.add_argument("--lookahead", type=int, default=3, help="jours de marge avant re-scraping")
     ap.add_argument("--delay", type=float, default=2.0, help="pause (s) entre deux requêtes Habous")
     ap.add_argument("--city", type=int, help="ne traiter que cette ville (essai) ; ex. 58")
-    ap.add_argument("--utc-offset", help='décalage UTC écrit dans les fichiers, ex. "+00:00" (facultatif)')
+    ap.add_argument(
+        "--utc-offset",
+        help='impose le décalage UTC de tous les jours, ex. "+00:00" (facultatif : par défaut il est '
+        "déduit automatiquement de l'heure du Dhuhr de chaque jour)",
+    )
     ap.add_argument("--ca-bundle", help="fichier de certificats (chaîne complète du site Habous)")
     ap.add_argument(
         "--skip-if-fresh", action="store_true",
@@ -278,6 +344,7 @@ def main() -> int:
             print(f"Ville {args.city} absente de la liste Habous")
             return 1
     ok, failed = build_times(cities, data_dir, args.lookahead, args.delay, args.utc_offset)
+    undecided = annotate_offsets(all_cities, data_dir, args.utc_offset)
     if args.no_geocode:
         report: dict[str, list[int]] = {"removed": [], "unverified": [], "missing": []}
     else:
@@ -291,6 +358,13 @@ def main() -> int:
         f"{len(without)} sans coordonnées {without} (à renseigner dans tools/cities_curated.json)"
     )
     print(f"Horaires : {ok} villes mises à jour, {failed} échecs")
+    if undecided:
+        print(
+            f"ERREUR : décalage de l'heure légale indéterminé pour {len(undecided)} jour(s) "
+            f"({undecided[0]} …) : trop peu de villes vérifiées ou villes en désaccord. "
+            "Relancez à la main avec le décalage (champ utc_offset) ; rien ne doit être publié."
+        )
+        return 1
     return 1 if failed and not ok else 0
 
 

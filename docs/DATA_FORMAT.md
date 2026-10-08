@@ -48,6 +48,7 @@ Adresse brute / raw URL : `https://raw.githubusercontent.com/schawki/habous-pray
  "city_id": 58,
  "timezone": "Africa/Casablanca",
  "utc_offset": "+00:00",
+ "offsets": { "2026-10-03": "+00:00" },
  "updated": "2026-10-03T01:43:44+00:00",
  "days": {
   "2026-10-03": { "fajr": "04:58", "sunrise": "06:23", "dhuhr": "12:25", "asr": "15:41", "maghrib": "18:17", "isha": "19:30" }
@@ -59,16 +60,21 @@ Adresse brute / raw URL : `https://raw.githubusercontent.com/schawki/habous-pray
 |---|---|
 | `city_id` | id de la ville (comme dans `cities.json`). |
 | `timezone` | `Africa/Casablanca` (informatif). |
-| `utc_offset` | décalage de l'heure légale marocaine **à la date de la collecte**, au format `+00:00`. Facultatif. / offset of Moroccan legal time when the data were collected. Optional. |
+| `offsets` | décalage de l'heure légale marocaine **pour chaque jour** de `days` (clés `AAAA-MM-JJ`, valeurs `+00:00`). Prioritaire sur `utc_offset` : l'heure légale peut changer au milieu d'un fichier. Facultatif (absent des anciens fichiers). / offset of Moroccan legal time **for each day** of `days`. Takes priority over `utc_offset`, because legal time can change in the middle of a file. Optional (absent from older files). |
+| `utc_offset` | décalage du **dernier jour** du fichier, au format `+00:00`. Repli quand `offsets` ne couvre pas un jour. Facultatif. / offset of the file's **last day**; fallback when `offsets` has no entry for a day. Optional. |
 | `updated` | date UTC de la dernière collecte pour cette ville. / UTC time of the last collection. |
 | `days` | clés `AAAA-MM-JJ` (date grégorienne) ; valeurs : `fajr`, `sunrise`, `dhuhr`, `asr`, `maghrib`, `isha`, au format `HH:MM` sur 24 h, **en heure légale marocaine**. |
 
 **Règles de lecture / Reading rules**
 
-- **Construisez l'instant** (date + heure) avec `utc_offset` quand il est présent, plutôt qu'avec le fuseau de l'appareil : cela évite les erreurs si la base de fuseaux du téléphone est ancienne (le Maroc change d'heure autour du Ramadan) et si l'utilisateur est à l'étranger. Sans `utc_offset`, utilisez `Africa/Casablanca`. / Build the instant from date + time + `utc_offset` when present, not the device time zone.
+- **Construisez l'instant** (date + heure) avec `offsets[jour]` s'il existe, sinon `utc_offset`, plutôt qu'avec le fuseau de l'appareil : cela évite les erreurs si la base de fuseaux du téléphone est ancienne (le Maroc change d'heure autour du Ramadan) et si l'utilisateur est à l'étranger. Sans décalage, utilisez `Africa/Casablanca`. / Build the instant from date + time + `offsets[day]` (else `utc_offset`) when present, not the device time zone.
 - `sunrise` (Chourouk) n'est pas une prière : ne déclenchez pas d'adhan dessus. / `sunrise` is not a prayer.
 - Un jour absent de `days` signifie « pas de données », pas « pas de prière » : prévoyez un repli (calcul local, dernier jour connu…). / A missing day means “no data”.
 - Les heures sont à la minute, comme sur le site des Habous.
+
+## D'où vient le décalage ? / Where does the offset come from?
+
+🇫🇷 Il n'est **pas saisi à la main** : à chaque collecte, le script le **déduit des heures publiées**. Pour chaque jour, il compare le Dhuhr publié de chaque ville aux coordonnées vérifiées (au moins 20 villes) au midi solaire calculé à sa longitude ; l'écart est le décalage légal. Il retient la médiane, arrondie à 30 minutes, seulement si au moins 90 % des villes s'accordent à ±15 minutes et si la médiane est à moins de 10 minutes d'un multiple de 30. Sinon la collecte s'arrête en erreur et rien n'est publié (relancer à la main avec le champ `utc_offset` du workflow). Un changement d'heure légale du Maroc est ainsi pris en compte automatiquement, jour par jour. 🇬🇧 It is **not typed by hand**: at each collection the script **deduces it from the published times**. For each day it compares every verified city's published Dhuhr with the solar noon computed at its longitude (at least 20 cities); the gap is the legal offset. It keeps the median, rounded to 30 minutes, only if at least 90% of cities agree within ±15 minutes. Otherwise the run fails and nothing is published (run it by hand with the workflow's `utc_offset` field). A change of Moroccan legal time is therefore picked up automatically, day by day.
 
 ## Quelle période est couverte ? / What period is covered?
 

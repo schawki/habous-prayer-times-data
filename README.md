@@ -19,6 +19,7 @@ Exemple de `times/<id>.json` :
  "city_id": 58,
  "timezone": "Africa/Casablanca",
  "utc_offset": "+00:00",
+ "offsets": { "2026-10-02": "+00:00" },
  "updated": "2026-10-02T09:00:00+00:00",
  "days": { "2026-10-02": { "fajr": "05:10", "sunrise": "06:30", "dhuhr": "13:00", "asr": "16:20", "maghrib": "18:50", "isha": "20:10" } }
 }
@@ -26,7 +27,7 @@ Exemple de `times/<id>.json` :
 
 Format détaillé, règles de lecture et bonnes pratiques de téléchargement : [docs/DATA_FORMAT.md](docs/DATA_FORMAT.md) (FR/EN).
 
-Les heures sont les heures légales marocaines du jour concerné. `utc_offset` est facultatif (écrit seulement si on le fournit au constructeur).
+Les heures sont les heures légales marocaines du jour concerné. Le décalage de l'heure légale est **déduit automatiquement**, jour par jour, de l'heure du Dhuhr publiée pour les villes aux coordonnées vérifiées (`offsets`, et `utc_offset` pour le dernier jour) : un changement d'heure légale est donc pris en compte sans réglage. Si la déduction est impossible, le workflow s'arrête en erreur et rien n'est publié ; on peut alors lancer le workflow à la main avec le champ `utc_offset`. Détails : [docs/DATA_FORMAT.md](docs/DATA_FORMAT.md).
 
 ## Comment les données sont produites
 
