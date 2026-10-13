@@ -17,6 +17,11 @@ on:
         description: 'Impose le décalage UTC, ex. +00:00. Vide = déduit automatiquement (recommandé).'
         required: false
         default: ""
+      force:
+        description: "Re-télécharge toutes les villes même si les fichiers sont à jour (ex. pour ajouter la date hijri). Laisser décoché sinon."
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: write
@@ -33,6 +38,7 @@ jobs:
         env:
           CITY: ${{ inputs.city }}
           UTC_OFFSET: ${{ inputs.utc_offset }}
+          FORCE: ${{ inputs.force }}
           EVENT: ${{ github.event_name }}
         run: |
           args=(--data-dir data --ca-bundle certs/habous-intermediate.pem)
@@ -43,6 +49,7 @@ jobs:
             args+=(--lookahead 7)
           fi
           [ -n "$CITY" ] && args+=(--city "$CITY")
+          [ "$FORCE" = "true" ] && args+=(--force)
           [ -n "$UTC_OFFSET" ] && args+=(--utc-offset "$UTC_OFFSET")
           python tools/build_data.py "${args[@]}"
       - name: Publier si modifié

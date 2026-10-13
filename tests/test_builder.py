@@ -34,7 +34,7 @@ def cand(lat, lon, name="Ville", cls="place", rank=16):
     return {"lat": str(lat), "lon": str(lon), "name": name, "class": cls, "place_rank": rank}
 
 
-def synthetic_page(start: date, n: int = 30) -> str:
+def synthetic_page(start: date, n: int = 30, header: str = "") -> str:
     rows = []
     for i in range(n):
         d = start + timedelta(days=i)
@@ -44,7 +44,7 @@ def synthetic_page(start: date, n: int = 30) -> str:
             f"<td>17:05</td><td>19:58</td><td>21:12</td></tr>"
         )
     cities = "".join(f'<option value="{i}">Ville {i}</option>' for i in range(1, 15))
-    return f"<select name='ville'>{cities}</select><table>{''.join(rows)}</table>"
+    return f"{header}<select name='ville'>{cities}</select><table>{''.join(rows)}</table>"
 
 
 class ParserTests(unittest.TestCase):
@@ -62,6 +62,36 @@ class ParserTests(unittest.TestCase):
     def test_garbage_raises(self):
         with self.assertRaises(parser.ParseError):
             parser.parse_month("<html>rien</html>", today=date(2026, 10, 2))
+
+
+class HijriParserTests(unittest.TestCase):
+    HEADER = "<h2>جمادى الأولى 1448</h2>"
+
+    def test_header_variants(self):
+        for text, expected in (
+            ("ربيع الآخر 1448", (1448, 4)), ("ربيع الأول 1448", (1448, 3)),
+            ("جمادى الآخرة 1449", (1449, 6)), ("ذو الحجة 1447", (1447, 12)),
+            ("رمضان 1448", (1448, 9)), ("محرم 1448", (1448, 1)),
+        ):
+            self.assertEqual(parser.parse_hijri_header(f"<div>{text}</div>"), expected, text)
+        self.assertIsNone(parser.parse_hijri_header("<div>rien 1448</div>"))
+
+    def test_row_i_is_hijri_day_i_plus_1(self):
+        page = synthetic_page(date(2026, 10, 13), header=self.HEADER)
+        out = parser.parse_hijri(page, today=date(2026, 10, 20))
+        self.assertEqual(out["2026-10-13"], {"y": 1448, "m": 5, "d": 1})
+        self.assertEqual(out["2026-11-11"], {"y": 1448, "m": 5, "d": 30})
+        self.assertEqual(len(out), 30)
+
+    def test_missing_header_or_bad_page_gives_empty_never_raises(self):
+        self.assertEqual(parser.parse_hijri(synthetic_page(date(2026, 10, 13)), date(2026, 10, 20)), {})
+        self.assertEqual(parser.parse_hijri("<html>rien</html>", date(2026, 10, 20)), {})
+
+    def test_real_page(self):
+        html = FIXTURE.read_text("utf-8")
+        out = parser.parse_hijri(html, date(2026, 10, 3))
+        self.assertEqual(out["2026-10-03"], {"y": 1448, "m": 4, "d": 21})
+        self.assertEqual(out["2026-09-13"], {"y": 1448, "m": 4, "d": 1})
 
 
 class BuilderTests(unittest.TestCase):
@@ -94,6 +124,39 @@ class BuilderTests(unittest.TestCase):
         page = synthetic_page(date.today() - timedelta(days=5))
         code, _, _ = self._run(["--city", "3"], page)
         self.assertEqual(code, 1)  # offset undeterminable: nothing may be published
+
+    def test_hijri_written_when_the_page_has_it(self):
+        page = synthetic_page(date.today() - timedelta(days=5), header="<h2>رجب 1448</h2>")
+        _, files, _ = self._run(["--city", "3", "--utc-offset", "+00:00"], page)
+        hijri = files["3.json"]["hijri"]
+        first = (date.today() - timedelta(days=5)).isoformat()
+        self.assertEqual(hijri[first], {"y": 1448, "m": 7, "d": 1})
+        self.assertEqual(set(hijri), set(files["3.json"]["days"]))
+
+    def test_no_hijri_header_still_publishes_times_without_hijri(self):
+        page = synthetic_page(date.today() - timedelta(days=5))
+        code, files, _ = self._run(["--city", "3", "--utc-offset", "+00:00"], page)
+        self.assertEqual(code, 0)
+        self.assertNotIn("hijri", files["3.json"])
+
+    def test_payload_keeps_hijri_only_for_kept_days(self):
+        days = {"2026-10-13": {}, "2026-10-14": {}}
+        hijri = {d: {"y": 1448, "m": 5, "d": 1} for d in ("2026-10-12", "2026-10-13")}
+        out = build.times_payload(3, days, "+00:00", None, hijri)
+        self.assertEqual(list(out["hijri"]), ["2026-10-13"])
+
+    def test_force_refetches_files_that_are_already_fresh(self):
+        page = synthetic_page(date.today() - timedelta(days=5), header="<h2>رجب 1448</h2>")
+        with tempfile.TemporaryDirectory() as tmp, \
+             mock.patch.object(build, "http_get", return_value=page) as get, \
+             mock.patch.object(build.time, "sleep"):
+            city = [{"id": 3}]
+            build.build_times(city, Path(tmp), 7, 0, "+00:00")
+            first = get.call_count
+            build.build_times(city, Path(tmp), 7, 0, "+00:00")
+            self.assertEqual(get.call_count, first)  # fresh: skipped
+            build.build_times(city, Path(tmp), 7, 0, "+00:00", force=True)
+            self.assertEqual(get.call_count, first + 1)
 
     def test_bad_offset_rejected(self):
         code, files, _ = self._run(["--utc-offset", "1h"], "")
@@ -277,7 +340,10 @@ class RefineTests(unittest.TestCase):
              mock.patch.object(build, "http_get", return_value=page), \
              mock.patch.object(build, "geocode_candidates", return_value=[]), \
              mock.patch.object(build.time, "sleep"), \
+             mock.patch.object(build, "date") as fake_date, \
              mock.patch.object(sys, "argv", ["b", "--data-dir", tmp, "--city", "58", "--utc-offset", "+00:00"]):
+            fake_date.today.return_value = date(2026, 10, 3)  # the saved page covers this day
+            fake_date.side_effect = date
             self.assertEqual(build.main(), 0)
             cities = {c["id"]: c for c in json.loads((Path(tmp) / "cities.json").read_text("utf-8"))["cities"]}
         self.assertEqual(cities[104]["name_fr"], "Marrakech")

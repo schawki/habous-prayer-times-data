@@ -16,6 +16,13 @@ from datetime import date, timedelta
 from html.parser import HTMLParser
 
 PRAYERS = ["fajr", "sunrise", "dhuhr", "asr", "maghrib", "isha"]
+# Hijri months as written in the page header (e.g. "ربيع الآخر 1448"), normalised by _norm_ar.
+_HIJRI_MONTHS = {
+    "محرم": 1, "صفر": 2, "ربيع الاول": 3, "ربيع الاخر": 4, "ربيع الثاني": 4,
+    "جمادى الاولى": 5, "جمادى الاول": 5, "جمادى الاخرة": 6, "جمادى الثانية": 6,
+    "رجب": 7, "شعبان": 8, "رمضان": 9, "شوال": 10,
+    "ذو القعدة": 11, "ذي القعدة": 11, "ذو الحجة": 12, "ذي الحجة": 12,
+}
 _TIME_RE = re.compile(r"^\s*(\d{1,2})\s*[:hH]\s*(\d{2})\s*$")
 _INT_RE = re.compile(r"^\s*(\d{1,2})\s*$")
 # Les options du sélecteur valent « index.php?ville=58 » sur la vraie page.
@@ -146,3 +153,41 @@ def parse_month(html: str, today: date) -> dict[str, dict[str, str]]:
             raise ParseError(f"Dates incohérentes à la ligne {i + 1}")
         result[d.isoformat()] = dict(zip(PRAYERS, times))
     return result
+
+
+def _norm_ar(text: str) -> str:
+    """Arabic text without diacritics, with hamza/alef, ya and ta marbuta variants merged."""
+    text = re.sub(r"[\u064B-\u0652\u0640]", "", text)
+    for a, b in (("أ", "ا"), ("إ", "ا"), ("آ", "ا"), ("ى", "ي"), ("ة", "ه")):
+        text = text.replace(a, b)
+    return " ".join(text.split())
+
+
+def parse_hijri_header(html: str) -> tuple[int, int] | None:
+    """(year, month 1-12) from the page header such as "ربيع الآخر 1448", else None."""
+    text = _norm_ar(re.sub(r"<[^>]+>", " ", html))
+    names = sorted(((_norm_ar(n), m) for n, m in _HIJRI_MONTHS.items()), key=lambda x: -len(x[0]))
+    for name, month in names:
+        m = re.search(re.escape(name) + r"\s+(1[3-5]\d\d)\b", text)
+        if m:
+            return int(m.group(1)), month
+    return None
+
+
+def parse_hijri(html: str, today: date) -> dict[str, dict[str, int]]:
+    """{YYYY-MM-DD: {"y": year, "m": month, "d": day}} for the month shown by the page.
+
+    The page lists the days of one Hijri month in order, so row i is Hijri day i + 1. This is
+    optional information: any problem (header missing, page not parseable) gives {} and never
+    prevents the prayer times themselves from being published."""
+    try:
+        header = parse_hijri_header(html)
+        if header is None:
+            return {}
+        dates = sorted(parse_month(html, today))
+    except ParseError:
+        return {}
+    year, month = header
+    if not 29 <= len(dates) <= 30:
+        return {}
+    return {d: {"y": year, "m": month, "d": i + 1} for i, d in enumerate(dates)}

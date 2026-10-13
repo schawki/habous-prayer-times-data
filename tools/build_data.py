@@ -181,7 +181,11 @@ def refine_coordinates(
 
 
 def times_payload(
-    cid: int, days: dict, utc_offset: str | None, offsets: dict | None = None
+    cid: int,
+    days: dict,
+    utc_offset: str | None,
+    offsets: dict | None = None,
+    hijri: dict | None = None,
 ) -> dict:
     """Contenu d'un fichier times/<id>.json.
 
@@ -201,6 +205,9 @@ def times_payload(
         if kept:
             payload["offsets"] = kept
             payload["utc_offset"] = kept[max(kept)]
+    kept_hijri = {d: h for d, h in (hijri or {}).items() if d in days}
+    if kept_hijri:
+        payload["hijri"] = kept_hijri
     return payload
 
 
@@ -270,7 +277,12 @@ def needs_refresh(data_dir: Path, lookahead: int, today: date | None = None) -> 
 
 
 def build_times(
-    cities: list[dict], data_dir: Path, lookahead: int, delay: float, utc_offset: str | None = None
+    cities: list[dict],
+    data_dir: Path,
+    lookahead: int,
+    delay: float,
+    utc_offset: str | None = None,
+    force: bool = False,
 ) -> tuple[int, int]:
     today = date.today()
     horizon = (today + timedelta(days=lookahead)).isoformat()
@@ -280,7 +292,7 @@ def build_times(
         path = data_dir / "times" / f"{cid}.json"
         current = read_json(path, {"days": {}})
         days = current.get("days", {})
-        if days and max(days) >= horizon:
+        if days and max(days) >= horizon and not force:
             continue
         try:
             html = http_get(f"{HABOUS_URL}?ville={cid}")
@@ -291,9 +303,11 @@ def build_times(
             time.sleep(delay)
             continue
         days.update(fresh)
+        hijri = dict(current.get("hijri") or {})
+        hijri.update(parser.parse_hijri(html, today))
         cutoff = (today - timedelta(days=7)).isoformat()
         days = {d: t for d, t in days.items() if d >= cutoff}
-        write_json(path, times_payload(cid, days, utc_offset, current.get("offsets")))
+        write_json(path, times_payload(cid, days, utc_offset, current.get("offsets"), hijri))
         ok += 1
         time.sleep(delay)
     return ok, failed
@@ -314,6 +328,10 @@ def main() -> int:
     ap.add_argument(
         "--skip-if-fresh", action="store_true",
         help="ne rien faire (aucune requête) si tous les fichiers couvrent déjà la période",
+    )
+    ap.add_argument(
+        "--force", action="store_true",
+        help="re-télécharge les villes même si leurs fichiers sont à jour (ex. pour ajouter la date hijri)",
     )
     ap.add_argument(
         "--no-geocode", action="store_true",
@@ -343,7 +361,9 @@ def main() -> int:
         if not cities:
             print(f"Ville {args.city} absente de la liste Habous")
             return 1
-    ok, failed = build_times(cities, data_dir, args.lookahead, args.delay, args.utc_offset)
+    ok, failed = build_times(
+        cities, data_dir, args.lookahead, args.delay, args.utc_offset, args.force
+    )
     undecided = annotate_offsets(all_cities, data_dir, args.utc_offset)
     if args.no_geocode:
         report: dict[str, list[int]] = {"removed": [], "unverified": [], "missing": []}

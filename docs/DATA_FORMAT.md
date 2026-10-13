@@ -49,6 +49,7 @@ Adresse brute / raw URL : `https://raw.githubusercontent.com/schawki/habous-pray
  "timezone": "Africa/Casablanca",
  "utc_offset": "+00:00",
  "offsets": { "2026-10-03": "+00:00" },
+ "hijri": { "2026-10-03": { "y": 1448, "m": 4, "d": 21 } },
  "updated": "2026-10-03T01:43:44+00:00",
  "days": {
   "2026-10-03": { "fajr": "04:58", "sunrise": "06:23", "dhuhr": "12:25", "asr": "15:41", "maghrib": "18:17", "isha": "19:30" }
@@ -62,6 +63,7 @@ Adresse brute / raw URL : `https://raw.githubusercontent.com/schawki/habous-pray
 | `timezone` | `Africa/Casablanca` (informatif). |
 | `offsets` | décalage de l'heure légale marocaine **pour chaque jour** de `days` (clés `AAAA-MM-JJ`, valeurs `+00:00`). Prioritaire sur `utc_offset` : l'heure légale peut changer au milieu d'un fichier. Facultatif (absent des anciens fichiers). / offset of Moroccan legal time **for each day** of `days`. Takes priority over `utc_offset`, because legal time can change in the middle of a file. Optional (absent from older files). |
 | `utc_offset` | décalage du **dernier jour** du fichier, au format `+00:00`. Repli quand `offsets` ne couvre pas un jour. Facultatif. / offset of the file's **last day**; fallback when `offsets` has no entry for a day. Optional. |
+| `hijri` | date hijri **officielle marocaine** de chaque jour de `days`, telle que publiée par les Habous : `y` année, `m` mois (1 = Mouharram … 12 = Dhou al-hijja), `d` jour. Facultatif : absent si la page n'a pas pu la fournir, et des jours les plus anciens d'un fichier. Ne jamais la déduire par calcul quand elle existe. / official Moroccan Hijri date of each day of `days` as published by Habous: `y` year, `m` month (1 = Muharram … 12 = Dhu al-Hijjah), `d` day. Optional: missing if the page could not provide it, and for the oldest days of a file. |
 | `updated` | date UTC de la dernière collecte pour cette ville. / UTC time of the last collection. |
 | `days` | clés `AAAA-MM-JJ` (date grégorienne) ; valeurs : `fajr`, `sunrise`, `dhuhr`, `asr`, `maghrib`, `isha`, au format `HH:MM` sur 24 h, **en heure légale marocaine**. |
 

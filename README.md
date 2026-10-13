@@ -33,7 +33,7 @@ Les heures sont les heures légales marocaines du jour concerné. Le décalage d
 
 `tools/build_data.py` lit la page des Habous **avec parcimonie** : une requête par ville seulement quand ses données expirent bientôt (environ une fois par mois hijri), avec une pause de 2 s entre deux requêtes, un User-Agent qui s'identifie, et jamais de contournement de la vérification des certificats. Si la page n'a pas la structure attendue, **rien n'est écrit** : les anciennes données restent en place plutôt que de publier des horaires faux.
 
-Le workflow GitHub tourne **chaque jour à 00:07 UTC**, mais il ne fait presque toujours rien : avec `--skip-if-fresh`, le script regarde d'abord dans `data/` si les fichiers de toutes les villes couvrent encore aujourd'hui, et s'arrête alors **sans aucune requête** vers le site des Habous. Une passe complète (la liste des villes, puis les 191 horaires, environ 13 minutes) n'a lieu qu'**au changement de mois hijri**, quand la page des Habous affiche le nouveau mois. Les passages automatiques ne cherchent pas de coordonnées (`--no-geocode`). Le workflow reste lançable à la main (onglet Actions → « Mise à jour des données Habous » → Run workflow), avec une marge de 7 jours et la recherche de coordonnées.
+Le workflow GitHub tourne **chaque jour à 00:07 UTC**, mais il ne fait presque toujours rien : avec `--skip-if-fresh`, le script regarde d'abord dans `data/` si les fichiers de toutes les villes couvrent encore aujourd'hui, et s'arrête alors **sans aucune requête** vers le site des Habous. Une passe complète (la liste des villes, puis les 191 horaires, environ 13 minutes) n'a lieu qu'**au changement de mois hijri**, quand la page des Habous affiche le nouveau mois. Les passages automatiques ne cherchent pas de coordonnées (`--no-geocode`). Le workflow reste lançable à la main (onglet Actions → « Mise à jour des données Habous » → Run workflow), avec une marge de 7 jours et la recherche de coordonnées. La case **force** re-télécharge toutes les villes même si leurs fichiers sont à jour (utile pour ajouter la date hijri aux fichiers existants).
 
 ### Fenêtre sans données au changement de mois
 
@@ -75,3 +75,5 @@ The `data/` folder is written only by the `update-data.yml` workflow. Do not edi
 ## Licence et sources
 
 Le code est sous licence MIT (voir `LICENSE`). Les horaires restent la propriété de leur éditeur (Ministère des Habous et des Affaires islamiques). Les coordonnées des villes proviennent d'OpenStreetMap (© contributeurs OpenStreetMap, ODbL) ou de `tools/cities_curated.json`.
+
+**Date hijri.** Chaque jour peut porter la date hijri officielle marocaine publiée par les Habous (`hijri`, voir `docs/DATA_FORMAT.md`). / Each day can carry the official Moroccan Hijri date published by Habous (`hijri`, see `docs/DATA_FORMAT.md`).
